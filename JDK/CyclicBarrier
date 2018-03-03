@@ -14,6 +14,7 @@ await(long timeout, TimeUnit unit)是让这些线程等待至一定的时间，�
 
 
 ##### 代码实例：
+you can find the code on the [github][1], get the result as you try:
 ```
 public class CyclicBarrierLearn {
     public static void main(String[] args) throws InterruptedException {
@@ -79,3 +80,5 @@ class CyclicBarrierThread implements Runnable {
 }
 
 ```
+
+[1]:https://github.com/twentyworld/learn/tree/master/JDKlearn/src/main/java/com/concurrent
