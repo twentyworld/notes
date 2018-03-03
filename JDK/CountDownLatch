@@ -59,7 +59,7 @@ public class CountDownLatchLearn {
     }
 }
 
-
+// you can create a new class named CountDownLatchThread.
 class CountDownLatchThread implements Runnable {
 
     private CountDownLatch countDownLatch;
