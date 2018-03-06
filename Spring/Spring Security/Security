@@ -1,0 +1,434 @@
+## Spring Security
+---
+
+Spring Security is a framework that focuses on providing both authentication and authorization to Java applications. Like all Spring projects, the real power of Spring Security is found in how easily it can be extended to meet custom requirements
+
+
+>  spring security实现方式大致可以分为这几种：
+>  1. 配置文件实现，只需要在配置文件中指定拦截的url所需要权限、配置userDetailsService指定用户名、密码、对应权限，就可以实现。
+>  2. 实现UserDetailsService，loadUserByUsername(String userName)方法，根据userName来实现自己的业务逻辑返回UserDetails的实现类，需要自定义User类实现UserDetails，比较重要的方法是getAuthorities()，用来返回该用户所拥有的权限。
+>  3. 通过自定义filter重写spring security拦截器，实现动态过滤用户权限。
+>  4. 通过自定义filter重写spring security拦截器，实现自定义参数来检验用户，并且过滤权限。
+
+
+---
+#### Java Configuration
+
+The first step is to create our Spring Security Java Configuration。
+```
+@EnableWebSecurity
+public class WebSecurityConfig implements WebMvcConfigurer {
+
+	@Bean
+	public UserDetailsService userDetailsService() throws Exception {
+		InMemoryUserDetailsManager manager = new InMemoryUserDetailsManager();
+		manager.createUser(User.withDefaultPasswordEncoder().username("user").password("password").roles("USER").build());
+		return manager;
+	}
+}
+```
+
+The next step is to register the springSecurityFilterChain with the war.
+Spring Security provides a base class AbstractSecurityWebApplicationInitializer that will ensure the springSecurityFilterChain gets registered for you. The way in which we use AbstractSecurityWebApplicationInitializer differs depending on if we are already using Spring or if Spring Security is the only Spring component in our application.
+
+- If you are not using Spring or Spring MVC, you will need to pass in the WebSecurityConfig into the superclass to ensure the configuration is picked up. You can find an example below:
+  ```
+  public class SecurityWebApplicationInitializer
+  	extends AbstractSecurityWebApplicationInitializer {
+  	public SecurityWebApplicationInitializer() {
+  		super(WebSecurityConfig.class);
+  	}
+  }
+  ```
+- If we were using Spring elsewhere in our application we probably already had a WebApplicationInitializer that is loading our Spring Configuration. If we use the previous configuration we would get an error. Instead, we should register Spring Security with the existing ApplicationContext
+  ```
+  public class MvcWebApplicationInitializer extends
+  		AbstractAnnotationConfigDispatcherServletInitializer {
+  	@Override
+  	protected Class<?>[] getRootConfigClasses() {
+  		return new Class[] { WebSecurityConfig.class };
+  	}
+
+  	// ... other overrides ...
+  }
+  ```
+---
+#### HttpSecurity
+the WebSecurityConfigurerAdapter provides a default configuration in the configure(HttpSecurity http) method that looks like:
+```
+protected void configure(HttpSecurity http) throws Exception {
+	http
+		.authorizeRequests()
+			.anyRequest().authenticated()
+			.and()
+		.formLogin()
+			.and()
+		.httpBasic();
+}
+```
+The default configuration above:
+- Ensures that any request to our application requires the user to be authenticated
+- Allows users to authenticate with form based login
+- Allows users to authenticate with HTTP Basic authentication
+
+---
+#### Java Configuration and Form Login
+While the automatically generated log in page is convenient to get up and running quickly, most applications will want to provide their own log in page. To do so we can update our configuration as seen below:
+```
+protected void configure(HttpSecurity http) throws Exception {
+	http
+		.authorizeRequests()
+			.anyRequest().authenticated()
+			.and()
+		.formLogin()
+			.loginPage("/login")                                                             1
+			.permitAll();                                                                    2
+}
+```
+1. The updated configuration specifies the location of the log in page.
+2. We must grant all users (i.e. unauthenticated users) access to our log in page. The formLogin().permitAll() method allows granting access to all users for all URLs associated with form based log in.
+
+---
+#### Authorize Requests
+
+We can specify custom requirements for our URLs by adding multiple children to our http.authorizeRequests() method. For example:
+```
+protected void configure(HttpSecurity http) throws Exception {
+	http
+		.authorizeRequests()                                                              1
+			.antMatchers("/resources/**", "/signup", "/about").permitAll()                  2
+			.antMatchers("/admin/**").hasRole("ADMIN")                                      3
+			.antMatchers("/db/**").access("hasRole('ADMIN') and hasRole('DBA')")            4
+			.anyRequest().authenticated()                                                   5
+			.and()
+		// ...
+		.formLogin();
+}
+```
+1.  There are multiple children to the http.authorizeRequests() method each matcher is considered in the order they were declared.
+2.  We specified multiple URL patterns that any user can access. Specifically, any user can access a request if the URL starts with "/resources/", equals "/signup", or equals "/about".
+3.  Any URL that starts with "/admin/" will be restricted to users who have the role "ROLE_ADMIN". You will notice that since we are invoking the hasRole method we do not need to specify the "ROLE_" prefix.
+4.  Any URL that starts with "/db/" requires the user to have both "ROLE_ADMIN" and "ROLE_DBA". You will notice that since we are using the hasRole expression we do not need to specify the "ROLE_" prefix.
+5.  Any URL that has not already been matched on only requires that the user be authenticated
+
+---
+#### Handling Logouts
+
+When using the WebSecurityConfigurerAdapter, logout capabilities are automatically applied. The default is that accessing the URL /logout will log the user out by:
+
+- Invalidating the HTTP Session
+- Cleaning up any RememberMe authentication that was configured
+- Clearing the SecurityContextHolder
+- Redirect to /login?logout
+- Similar to configuring login capabilities, however, you also have various options to further customize your logout requirements:
+
+```
+protected void configure(HttpSecurity http) throws Exception {
+	http
+		.logout()                                                                   1
+			.logoutUrl("/my/logout")                                                  2
+			.logoutSuccessUrl("/my/index")                                            3
+			.logoutSuccessHandler(logoutSuccessHandler)                               4
+			.invalidateHttpSession(true)                                              5
+			.addLogoutHandler(logoutHandler)                                          6
+			.deleteCookies(cookieNamesToClear)                                        7
+			.and()
+		...
+}
+```
+1.  Provides logout support. This is automatically applied when using WebSecurityConfigurerAdapter.
+2.  The URL that triggers log out to occur (default is /logout). If CSRF protection is enabled (default), then the request must also be a POST. For more information, please consult the JavaDoc.
+3.  The URL to redirect to after logout has occurred. The default is /login?logout. For more information, please consult the JavaDoc.
+4.  Let’s you specify a custom LogoutSuccessHandler. If this is specified, logoutSuccessUrl() is ignored. For more information, please consult the JavaDoc.
+5.  Specify whether to invalidate the HttpSession at the time of logout. This is true by default. Configures the SecurityContextLogoutHandler under the covers. For more information, please consult the JavaDoc.
+6.  Adds a LogoutHandler. SecurityContextLogoutHandler is added as the last LogoutHandler by default.
+7.  Allows specifying the names of cookies to be removed on logout success. This is a shortcut for adding a CookieClearingLogoutHandler explicitly.
+
+Generally, in order to customize logout functionality, you can add LogoutHandler and/or LogoutSuccessHandler implementations. For many common scenarios, these handlers are applied under the covers when using the fluent API.
+
+##### LogoutHandler
+LogoutHandler implementations indicate classes that are able to participate in logout handling. They are expected to be invoked to perform necessary clean-up. As such they should not throw exceptions. Various implementations are provided:
+
+- PersistentTokenBasedRememberMeServices
+- TokenBasedRememberMeServices
+- CookieClearingLogoutHandler
+- CsrfLogoutHandler
+- SecurityContextLogoutHandler
+
+
+##### LogoutSuccessHandler
+The LogoutSuccessHandler is called after a successful logout by the LogoutFilter, to handle e.g. redirection or forwarding to the appropriate destination. Note that the interface is almost the same as the LogoutHandler but may raise an exception.
+
+---
+#### WebFlux Security
+
+<font color="RED">**will add later.**</font>
+
+---
+#### OAuth 2.0 Login
+
+Spring Boot 2.0 brings full auto-configuration capabilities for OAuth 2.0 Login.
+
+Below shows how to configure the OAuth 2.0 Login sample using Google as the Authentication Provider and covers the following topics:
+
+- Initial setup
+- Setting the redirect URI
+- Configure application.yml
+- Boot up the application
+
+<font color="RED">**will add some demo code later.**</font>
+
+---
+#### Authentication
+more advanced options for configuring authentication.
+
+##### In-Memory Authentication
+We have already seen an example of configuring in-memory authentication for a single user. Below is an example to configure multiple users:
+```
+@Bean
+public UserDetailsService userDetailsService() throws Exception {
+	// ensure the passwords are encoded properly
+	UserBuilder users = User.withDefaultPasswordEncoder();
+	InMemoryUserDetailsManager manager = new InMemoryUserDetailsManager();
+	manager.createUser(users.username("user").password("password").roles("USER").build());
+	manager.createUser(users.username("admin").password("password").roles("USER","ADMIN").build());
+	return manager;
+}
+```
+
+##### JDBC Authentication
+You can find the updates to support JDBC based authentication. The example below assumes that you have already defined a DataSource within your application. The jdbc-javaconfig sample provides a complete example of using JDBC based authentication.
+```
+@Autowired
+private DataSource dataSource;
+
+@Autowired
+public void configureGlobal(AuthenticationManagerBuilder auth) throws Exception {
+	// ensure the passwords are encoded properly
+	UserBuilder users = User.withDefaultPasswordEncoder();
+	auth
+		.jdbcAuthentication()
+			.dataSource(dataSource)
+			.withDefaultSchema()
+			.withUser(users.username("user").password("password").roles("USER"))
+			.withUser(users.username("admin").password("password").roles("USER","ADMIN"));
+}
+```
+
+##### LDAP Authentication
+You can find the updates to support LDAP based authentication. The ldap-javaconfig sample provides a complete example of using LDAP based authentication.
+
+
+##### AuthenticationProvider.
+You can define custom authentication by exposing a custom AuthenticationProvider as a bean. For example, the following will customize authentication assuming that SpringAuthenticationProvider implements AuthenticationProvider:
+```
+@Bean
+public SpringAuthenticationProvider springAuthenticationProvider() {
+	return new SpringAuthenticationProvider();
+}
+```
+
+##### UserDetailsService
+You can define custom authentication by exposing a custom UserDetailsService as a bean. For example, the following will customize authentication assuming that SpringDataUserDetailsService implements UserDetailsService:
+>This is only used if the AuthenticationManagerBuilder has not been populated and no AuthenticationProviderBean is defined.
+```
+@Bean
+public SpringDataUserDetailsService springDataUserDetailsService() {
+	return new SpringDataUserDetailsService();
+}
+```
+You can also customize how passwords are encoded by exposing a PasswordEncoder as a bean. For example, if you use bcrypt you can add a bean definition as shown below:
+```
+@Bean
+public BCryptPasswordEncoder passwordEncoder() {
+	return new BCryptPasswordEncoder();
+}
+```
+---
+#### Multiple HttpSecurity
+We can configure multiple HttpSecurity instances just as we can have multiple <http> blocks. The key is to extend the WebSecurityConfigurationAdapter multiple times. For example, the following is an example of having a different configuration for URL’s that start with /api/.
+```
+@EnableWebSecurity
+public class MultiHttpSecurityConfig {
+	@Bean                                                                    1
+	public UserDetailsService userDetailsService() throws Exception {
+		// ensure the passwords are encoded properly
+		UserBuilder users = User.withDefaultPasswordEncoder();
+		InMemoryUserDetailsManager manager = new InMemoryUserDetailsManager();
+		manager.createUser(users.username("user").password("password").roles("USER").build());
+		manager.createUser(users.username("admin").password("password").roles("USER","ADMIN").build());
+		return manager;
+	}
+
+	@Configuration
+	@Order(1)                                                                2
+	public static class ApiWebSecurityConfigurationAdapter extends WebSecurityConfigurerAdapter {
+		protected void configure(HttpSecurity http) throws Exception {
+			http
+				.antMatcher("/api/**")                                            3
+				.authorizeRequests()
+					.anyRequest().hasRole("ADMIN")
+					.and()
+				.httpBasic();
+		}
+	}
+
+	@Configuration                                                          4
+	public static class FormLoginWebSecurityConfigurerAdapter extends WebSecurityConfigurerAdapter {
+
+		@Override
+		protected void configure(HttpSecurity http) throws Exception {
+			http
+				.authorizeRequests()
+					.anyRequest().authenticated()
+					.and()
+				.formLogin();
+		}
+	}
+}
+```
+
+1. Configure Authentication as normal
+2. Create an instance of WebSecurityConfigurerAdapter that contains @Order to specify which WebSecurityConfigurerAdapter should be considered first.
+3. The http.antMatcher states that this HttpSecurity will only be applicable to URLs that start with /api/
+4. Create another instance of WebSecurityConfigurerAdapter. If the URL does not start with /api/ this configuration will be used. This configuration is considered after ApiWebSecurityConfigurationAdapter since it has an @Order value after 1 (no @Order defaults to last).
+
+---
+#### Method Security
+
+> 在Spring security的使用中，为了对方法进行权限控制，通常采用的三个注解，就是@Secured(), @PreAuthorize() 及 @RolesAllowed()。
+>
+> 现在举例，比如修改用户密码，必须是ADMIN的权限才可以。则可以用下面三种方法：
+> ```
+> @Secured({"ROLE_ADMIN"})
+> public void changePassword(String username, String password);
+>
+> @RolesAllowed({"ROLE_ADMIN"})
+> public void changePassword(String username, String password);
+>
+> @PreAuthorize("hasRole(‘ROLE_ADMIN‘)")
+> public void changePassword(String username, String password);
+> ```
+
+From version 2.0 onwards Spring Security has improved support substantially for adding security to your service layer methods.
+
+You can apply security to a single bean, using the intercept-methods element to decorate the bean declaration, or you can secure multiple beans across the entire service layer using the AspectJ style pointcuts.
+
+
+##### EnableGlobalMethodSecurity
+We can enable annotation-based security using the @EnableGlobalMethodSecurity annotation on any @Configuration instance. For example, the following would enable Spring Security’s @Secured annotation.
+```
+@EnableGlobalMethodSecurity(securedEnabled = true)
+public class MethodSecurityConfig {
+// ...
+}
+```
+Adding an annotation to a method (on a class or interface) would then limit the access to that method accordingly. Spring Security’s native annotation support defines a set of attributes for the method. These will be passed to the AccessDecisionManager for it to make the actual decision:
+```
+public interface BankService {
+
+@Secured("IS_AUTHENTICATED_ANONYMOUSLY")
+public Account readAccount(Long id);
+
+@Secured("IS_AUTHENTICATED_ANONYMOUSLY")
+public Account[] findAccounts();
+
+@Secured("ROLE_TELLER")
+public Account post(Account account, double amount);
+}
+```
+
+##### GlobalMethodSecurityConfiguration
+Sometimes you may need to perform operations that are more complicated than are possible with the @EnableGlobalMethodSecurity annotation allow. For these instances, you can extend the GlobalMethodSecurityConfiguration ensuring that the @EnableGlobalMethodSecurity annotation is present on your subclass.
+
+For example, if wanted to provide a custom MethodSecurityExpressionHandler,  could use the following configuration:
+```
+@EnableGlobalMethodSecurity(prePostEnabled = true)
+public class MethodSecurityConfig extends GlobalMethodSecurityConfiguration {
+	@Override
+	protected MethodSecurityExpressionHandler createExpressionHandler() {
+		// ... create and return custom MethodSecurityExpressionHandler ...
+		return expressionHandler;
+	}
+}
+```
+
+
+##### EnableReactiveMethodSecurity
+
+---
+#### Post Processing Configured Objects
+Spring Security’s Java Configuration does not expose every property of every object that it configures. This simplifies the configuration for a majority of users. Afterall, if every property was exposed, users could use standard bean configuration.
+```
+@Override
+protected void configure(HttpSecurity http) throws Exception {
+	http
+		.authorizeRequests()
+			.anyRequest().authenticated()
+			.withObjectPostProcessor(new ObjectPostProcessor<FilterSecurityInterceptor>() {
+				public <O extends FilterSecurityInterceptor> O postProcess(
+						O fsi) {
+					fsi.setPublishAuthorizationSuccess(true);
+					return fsi;
+				}
+			});
+}
+```
+
+---
+#### Custom DSLs
+You can provide your own custom DSLs in Spring Security. For example, you might have something that looks like this:
+```
+public class MyCustomDsl extends AbstractHttpConfigurer<MyCustomDsl, HttpSecurity> {
+	private boolean flag;
+
+	@Override
+	public void init(H http) throws Exception {
+		// any method that adds another configurer
+		// must be done in the init method
+		http.csrf().disable();
+	}
+
+	@Override
+	public void configure(H http) throws Exception {
+		ApplicationContext context = http.getSharedObject(ApplicationContext.class);
+
+		// here we lookup from the ApplicationContext. You can also just create a new instance.
+		MyFilter myFilter = context.getBean(MyFilter.class);
+		myFilter.setFlag(flag);
+		http.addFilterBefore(myFilter, UsernamePasswordAuthenticationFilter.class);
+	}
+
+	public MyCustomDsl flag(boolean value) {
+		this.flag = value;
+		return this;
+	}
+
+	public static MyCustomDsl customDsl() {
+		return new MyCustomDsl();
+	}
+}
+
+
+@EnableWebSecurity
+public class Config extends WebSecurityConfigurerAdapter {
+	@Override
+	protected void configure(HttpSecurity http) throws Exception {
+		http
+			.apply(customDsl())
+				.flag(true)
+				.and()
+			...;
+	}
+}
+```
+
+
+
+
+
+-----
+#### Samples
+
+https://docs.spring.io/spring-security/site/docs/current/guides/html5//helloworld-boot.html
+https://docs.spring.io/spring-security/site/docs/current/guides/html5//form-javaconfig.html

@@ -1,0 +1,97 @@
+## Core Services
+---
+
+Now that we have a high-level overview of the Spring Security architecture and its core classes, let’s take a closer look at one or two of the core interfaces and their implementations, in particular the AuthenticationManager, UserDetailsService and the AccessDecisionManager. These crop up regularly throughout the remainder of this document so it’s important you know how they are configured and how they operate.
+
+
+---
+
+### AuthenticationManager, ProviderManager and AuthenticationProvider
+
+The AuthenticationManager is just an interface, so the implementation can be anything we choose, but how does it work in practice?
+
+The default implementation in Spring Security is called ProviderManager and rather than handling the authentication request itself, it delegates to a list of configured AuthenticationProvider s, each of which is queried in turn to see if it can perform the authentication. Each provider will either throw an exception or return a fully populated Authentication object.
+The most common approach to verifying an authentication request is to load the corresponding UserDetails and check the loaded password against the one that has been entered by the user. This is the approach used by the DaoAuthenticationProvider。
+The loaded UserDetails object - and particularly the GrantedAuthority s it contains - will be used when building the fully populated Authentication object which is returned from a successful authentication and stored in the SecurityContext.
+
+```
+<bean id="authenticationManager"
+		class="org.springframework.security.authentication.ProviderManager">
+	<constructor-arg>
+		<list>
+			<ref local="daoAuthenticationProvider"/>
+			<ref local="anonymousAuthenticationProvider"/>
+			<ref local="ldapAuthenticationProvider"/>
+		</list>
+	</constructor-arg>
+</bean>
+```
+In the above example we have three providers. They are tried in the order shown (which is implied by the use of a List), with each provider able to attempt authentication, or skip authentication by simply returning null. If all implementations return null, the ProviderManager will throw a ProviderNotFoundException. If you’re interested in learning more about chaining providers, please refer to the ProviderManager Javadoc.
+
+Authentication mechanisms such as a web form-login processing filter are injected with a reference to the ProviderManager and will call it to handle their authentication requests. The providers you require will sometimes be interchangeable with the authentication mechanisms, while at other times they will depend on a specific authentication mechanism. For example, DaoAuthenticationProvider and LdapAuthenticationProvider are compatible with any mechanism which submits a simple username/password authentication request and so will work with form-based logins or HTTP Basic authentication. On the other hand, some authentication mechanisms create an authentication request object which can only be interpreted by a single type of AuthenticationProvider. An example of this would be JA-SIG CAS, which uses the notion of a service ticket and so can therefore only be authenticated by a CasAuthenticationProvider. You needn’t be too concerned about this, because if you forget to register a suitable provider, you’ll simply receive a ProviderNotFoundException when an attempt to authenticate is made.
+
+
+##### Erasing Credentials on Successful Authentication
+By default (from Spring Security 3.1 onwards) the ProviderManager will attempt to clear any sensitive credentials information from the Authentication object which is returned by a successful authentication request. This prevents information like passwords being retained longer than necessary.
+
+This may cause issues when you are using a cache of user objects, for example, to improve performance in a stateless application. If the Authentication contains a reference to an object in the cache (such as a UserDetails instance) and this has its credentials removed, then it will no longer be possible to authenticate against the cached value. You need to take this into account if you are using a cache. An obvious solution is to make a copy of the object first, either in the cache implementation or in the AuthenticationProvider which creates the returned Authentication object. Alternatively, you can disable the eraseCredentialsAfterAuthentication property on ProviderManager. See the Javadoc for more information.
+
+##### DaoAuthenticationProvider
+
+The simplest AuthenticationProvider implemented by Spring Security is DaoAuthenticationProvider.
+
+It leverages a UserDetailsService (as a DAO) in order to lookup the username, password and GrantedAuthority s. It authenticates the user simply by comparing the password submitted in a UsernamePasswordAuthenticationToken against the one loaded by the UserDetailsService.
+```
+<bean id="daoAuthenticationProvider"
+	       class="org.springframework.security.authentication.dao.DaoAuthenticationProvider">
+<property name="userDetailsService" ref="inMemoryDaoImpl"/>
+<property name="passwordEncoder" ref="passwordEncoder"/>
+</bean>
+```
+The PasswordEncoder is optional. A PasswordEncoder provides encoding and decoding of passwords presented in the UserDetails object that is returned from the configured UserDetailsService.
+
+---
+
+### UserDetailsService Implementations
+most authentication providers take advantage of the UserDetails and UserDetailsService interfaces. Recall that the contract for UserDetailsService is a single method:
+```
+UserDetails loadUserByUsername(String username) throws UsernameNotFoundException;
+```
+The returned UserDetails is an interface that provides getters that guarantee non-null provision of authentication information.
+
+Given UserDetailsService is so simple to implement, it should be easy for users to retrieve authentication information using a persistence strategy of their choice. Having said that, Spring Security does include a couple of useful base implementations, which we’ll look at below.
+
+##### In-Memory Authentication
+内存型,一般用于简单的用户。
+```
+<user-service id="userDetailsService">
+<!-- Password is prefixed with {noop} to indicate to DelegatingPasswordEncoder that
+NoOpPasswordEncoder should be used. This is not safe for production, but makes reading
+in samples easier. Normally passwords should be hashed using BCrypt -->
+<user name="jimi" password="{noop}jimispassword" authorities="ROLE_USER, ROLE_ADMIN" />
+<user name="bob" password="{noop}bobspassword" authorities="ROLE_USER" />
+</user-service>
+```
+##### JdbcDaoImpl
+Spring Security also includes a UserDetailsService that can obtain authentication information from a JDBC data source.
+```
+<bean id="dataSource" class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+<property name="driverClassName" value="org.hsqldb.jdbcDriver"/>
+<property name="url" value="jdbc:hsqldb:hsql://localhost:9001"/>
+<property name="username" value="sa"/>
+<property name="password" value=""/>
+</bean>
+
+<bean id="userDetailsService"
+	class="org.springframework.security.core.userdetails.jdbc.JdbcDaoImpl">
+<property name="dataSource" ref="dataSource"/>
+</bean>
+```
+You can use different relational database management systems by modifying the DriverManagerDataSource shown above. You can also use a global data source obtained from JNDI, as with any other Spring configuration.
+
+By default, JdbcDaoImpl loads the authorities for a single user with the assumption that the authorities are mapped directly to users (see the database schema appendix). An alternative approach is to partition the authorities into groups and assign groups to the user.
+
+---
+
+### Password Encoding
+<font color="RED">**will add some demo code later.**</font>
