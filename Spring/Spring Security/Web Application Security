@@ -288,7 +288,7 @@ Spring Security provides the necessary hooks for these operations to take place,
 Note that both implementations require a UserDetailsService. If you are using an authentication provider which doesn’t use a UserDetailsService (for example, the LDAP provider) then it won’t work unless you also have a UserDetailsService bean in your application context.
 
 
-#### Cross Site Request Forgery (CSRF)
+### Cross Site Request Forgery (CSRF)
 
 CSRF protection is enabled by default with Java Configuration. If you would like to disable CSRF, the corresponding Java configuration can be seen below. Refer to the Javadoc of csrf() for additional customizations in how CSRF protection is configured.
 ```
@@ -305,36 +305,130 @@ WebSecurityConfigurerAdapter {
 ```
 
 
+### CORS
+CORS must be processed before Spring Security because the pre-flight request will not contain any cookies (i.e. the JSESSIONID). If the request does not contain any cookies and Spring Security is first, the request will determine the user is not authenticated (since there are no cookies in the request) and reject it.
 
+The easiest way to ensure that CORS is handled first is to use the CorsFilter. Users can integrate the CorsFilter with Spring Security by providing a CorsConfigurationSource using the following:
+```
+@EnableWebSecurity
+public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
+	@Override
+	protected void configure(HttpSecurity http) throws Exception {
+		http
+			// by default uses a Bean by the name of corsConfigurationSource
+			.cors().and()
+			...
+	}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+	@Bean
+	CorsConfigurationSource corsConfigurationSource() {
+		CorsConfiguration configuration = new CorsConfiguration();
+		configuration.setAllowedOrigins(Arrays.asList("https://example.com"));
+		configuration.setAllowedMethods(Arrays.asList("GET","POST"));
+		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+		source.registerCorsConfiguration("/**", configuration);
+		return source;
+	}
+}
 ```
 
+If you are using Spring MVC’s CORS support, you can omit specifying the CorsConfigurationSource and Spring Security will leverage the CORS configuration provided to Spring MVC.
+
+---
+### Security HTTP Response Headers
+
+Spring Security’s support for adding various security headers to the response.
+
+#### 5.1 Default Security Headers
+
+> **more questions will going on if request.**<br>
+> **more questions will going on if request.**<br>
+
+
+
+### Session Management
+HTTP session related functionality is handled by a combination of the SessionManagementFilter and the SessionAuthenticationStrategy interface, which the filter delegates to. Typical usage includes session-fixation protection attack prevention, detection of session timeouts and restrictions on how many sessions an authenticated user may have open concurrently.
+
+#### 7.1 SessionManagementFilter
+The SessionManagementFilter checks the contents of the SecurityContextRepository against the current contents of the SecurityContextHolder to determine whether a user has been authenticated during the current request, typically by a non-interactive authentication mechanism, such as pre-authentication or remember-me .
+
+
+
+> **more questions will going on if request.**<br>
+> **more questions will going on if request.**<br>
+
+
+
+### WebSocket Security
+
+#### 8.1 WebSocket Configuration
+Spring Security 4.0 has introduced authorization support for WebSockets through the Spring Messaging abstraction. To configure authorization using Java Configuration, simply extend the AbstractSecurityWebSocketMessageBrokerConfigurer and configure the MessageSecurityMetadataSourceRegistry.
 ```
+@Configuration
+public class WebSocketSecurityConfig
+      extends AbstractSecurityWebSocketMessageBrokerConfigurer {                          1 2
+
+    protected void configureInbound(MessageSecurityMetadataSourceRegistry messages) {
+        messages
+                .simpDestMatchers("/user/*").authenticated()                               3
+    }
+}
+```
+
+1. Any inbound CONNECT message requires a valid CSRF token to enforce Same Origin Policy
+2. The SecurityContextHolder is populated with the user within the simpUser header attribute for any inbound request.
+3. Our messages require the proper authorization. Specifically, any inbound message that starts with "/user/" will require ROLE_USER.
+
+#### 8.2 WebSocket Authentication
+WebSockets reuse the same authentication information that is found in the HTTP request when the WebSocket connection was made.
+
+This means that the Principal on the HttpServletRequest will be handed off to WebSockets. If you are using Spring Security, the Principal on the HttpServletRequest is overridden automatically.
+
+#### 8.3 WebSocket Authorization
+
+Spring Security 4.0 has introduced authorization support for WebSockets through the Spring Messaging abstraction. To configure authorization using Java Configuration, simply extend the AbstractSecurityWebSocketMessageBrokerConfigurer and configure the MessageSecurityMetadataSourceRegistry.
+
+```
+@Configuration
+public class WebSocketSecurityConfig extends AbstractSecurityWebSocketMessageBrokerConfigurer {
+
+    @Override
+    protected void configureInbound(MessageSecurityMetadataSourceRegistry messages) {
+        messages
+                .nullDestMatcher().authenticated()                                          1
+                .simpSubscribeDestMatchers("/user/queue/errors").permitAll()                2
+                .simpDestMatchers("/app/**").hasRole("USER")                                3
+                .simpSubscribeDestMatchers("/user/**", "/topic/friends/*").hasRole("USER")  4
+                .simpTypeMatchers(MESSAGE, SUBSCRIBE).denyAll()                             5
+                .anyMessage().denyAll();                                                    6
+
+    }
+}
+```
+1. Any message without a destination (i.e. anything other than Message type of MESSAGE or SUBSCRIBE) will require the user to be authenticated
+
+2. Anyone can subscribe to /user/queue/errors
+3. Any message that has a destination starting with "/app/" will be require the user to have the role ROLE_USER
+4. Any message that starts with "/user/" or "/topic/friends/" that is of type SUBSCRIBE will require ROLE_USER
+5. Any other message of type MESSAGE or SUBSCRIBE is rejected. Due to 6 we do not need this step, but it illustrates how one can match on specific message types.
+6. Any other Message is rejected. This is a good idea to ensure that you do not miss any messages.
+
+##### 8.3.1  WebSocket Authorization Notes
+
+In order to properly secure your application it is important to understand Spring’s WebSocket support.
+
+**WebSocket Authorization on Message Types**
+
+It is important to understand the distinction between SUBSCRIBE and MESSAGE types of messages and how it works within Spring.
+
+Consider a chat application.
+
+The system can send notifications MESSAGE to all users through a destination of "/topic/system/notifications"
+- Clients can receive notifications by SUBSCRIBE to the "/topic/system/notifications".
+- While we want clients to be able to SUBSCRIBE to "/topic/system/notifications", we do not want to enable them to send a MESSAGE to that destination. If we allowed sending a MESSAGE to "/topic/system/notifications", then clients could send a message directly to that endpoint and impersonate the system.
+
+
+In general, it is common for applications to deny any MESSAGE sent to a message that starts with the broker prefix (i.e. "/topic/" or "/queue/").
+
+---
