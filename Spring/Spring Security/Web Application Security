@@ -1,0 +1,340 @@
+## Web Application Security.
+---
+Spring Security provides authentication and access-control features for the web layer of an application.
+
+see which classes and interfaces are actually assembled to provide web-layer security.
+
+---
+
+### 1.1 The Security Filter Chain.
+
+ It deals in HttpServletRequest s and HttpServletResponse s and doesn’t care whether the requests come from a browser, a web service client, an HttpInvoker or an AJAX application.
+
+Spring Security maintains a filter chain internally where each of the filters has a particular responsibility and filters are added or removed from the configuration depending on which services are required.
+
+#### 1.2 DelegatingFilterProxy
+When using servlet filters, you obviously need to declare them in your web.xml, or they will be ignored by the servlet container.
+###### FilterChainProxy
+Spring Security’s web infrastructure should only be used by delegating to an instance of FilterChainProxy. The security filters should not be used by themselves.
+
+
+```
+<bean id="filterChainProxy" class="org.springframework.security.web.FilterChainProxy">
+<constructor-arg>
+	<list>
+	<sec:filter-chain pattern="/restful/**" filters="
+		securityContextPersistenceFilterWithASCFalse,                               1
+		basicAuthenticationFilter,
+		exceptionTranslationFilter,
+		filterSecurityInterceptor" />
+	<sec:filter-chain pattern="/**" filters="
+		securityContextPersistenceFilterWithASCTrue,                                2
+		formLoginFilter,
+		exceptionTranslationFilter,
+		filterSecurityInterceptor" />
+	</list>
+</constructor-arg>
+</bean>
+```
+You may have noticed we have declared two SecurityContextPersistenceFilter s in the filter chain (ASC is short for allowSessionCreation, a property of SecurityContextPersistenceFilter). As web services will never present a jsessionid on future requests, creating HttpSession s for such user agents would be wasteful. If you had a high-volume application which required maximum scalability, we recommend you use the approach shown above. For smaller applications, using a single SecurityContextPersistenceFilter (with its default allowSessionCreation as true) would likely be sufficient.
+
+#### 1.3 Filter Ordering
+
+The order that filters are defined in the chain is very important. Irrespective of which filters you are actually using, the order should be as follows:
+
+- ChannelProcessingFilter: because it might need to redirect to a different protocol
+- SecurityContextPersistenceFilter: so a SecurityContext can be set up in the SecurityContextHolder at the beginning of a web request, and any changes to the SecurityContext can be copied to the HttpSession when the web request ends (ready for use with the next web request)
+- ConcurrentSessionFilter: because it uses the SecurityContextHolder functionality and needs to update the SessionRegistry to reflect ongoing requests from the principal
+- Authentication processing mechanisms - UsernamePasswordAuthenticationFilter, CasAuthenticationFilter, BasicAuthenticationFilter etc - so that the SecurityContextHolder can be modified to contain a valid Authentication request token
+- The SecurityContextHolderAwareRequestFilter: if you are using it to install a Spring Security aware HttpServletRequestWrapper into your servlet container
+- The JaasApiIntegrationFilter: if a JaasAuthenticationToken is in the SecurityContextHolder this will process the FilterChain as the Subject in the JaasAuthenticationToken
+- RememberMeAuthenticationFilter: so that if no earlier authentication processing mechanism updated the SecurityContextHolder, and the request presents a cookie that enables remember-me services to take place, a suitable remembered Authentication object will be put there
+- AnonymousAuthenticationFilter: so that if no earlier authentication processing mechanism updated the SecurityContextHolder, an anonymous Authentication object will be put there
+- ExceptionTranslationFilter: to catch any Spring Security exceptions so that either an HTTP error response can be returned or an appropriate AuthenticationEntryPoint can be launched
+- FilterSecurityInterceptor: to protect web URIs and raise exceptions when access is denied
+
+
+#### 1.4 Request Matching and HttpFirewall
+
+**need more information**
+
+#### Use with other Filter-Based Frameworks
+If you’re using some other framework that is also filter-based, then you need to make sure that the Spring Security filters come first. This enables the SecurityContextHolder to be populated in time for use by the other filters.
+
+---
+### Core Security Filters
+
+There are some key filters which will always be used in a web application which uses Spring Security.
+
+#### 1.1 FilterSecurityInterceptor
+FilterSecurityInterceptor is responsible for handling the security of HTTP resources.
+
+ It requires a reference to an AuthenticationManager and an AccessDecisionManager. It is also supplied with configuration attributes that apply to different HTTP URL requests.
+
+ ```
+ <bean id="filterSecurityInterceptor"
+ 	        class="org.springframework.security.web.access.intercept.FilterSecurityInterceptor">
+     <property name="authenticationManager" ref="authenticationManager"/>
+     <property name="accessDecisionManager" ref="accessDecisionManager"/>
+     <property name="securityMetadataSource">
+         	<security:filter-security-metadata-source>
+         	<security:intercept-url pattern="/secure/super/**" access="ROLE_WE_DONT_HAVE"/>
+         	<security:intercept-url pattern="/secure/**" access="ROLE_SUPERVISOR,ROLE_TELLER"/>
+         	</security:filter-security-metadata-source>
+     </property>
+ </bean>
+ ```
+The FilterSecurityInterceptor can be configured with configuration attributes in two ways.
+- The first, which is shown above, is using the <filter-security-metadata-source> namespace element.
+- The second option is to write your own SecurityMetadataSource.
+
+ the SecurityMetadataSource is responsible for returning a List<ConfigAttribute> containing all of the configuration attributes associated with a single secure HTTP URL.
+
+
+ #### 1.2 ExceptionTranslationFilter
+The ExceptionTranslationFilter sits above the FilterSecurityInterceptor in the security filter stack. It doesn’t do any actual security enforcement itself, but handles exceptions thrown by the security interceptors and provides suitable and HTTP responses.
+
+```
+<bean id="exceptionTranslationFilter"
+    class="org.springframework.security.web.access.ExceptionTranslationFilter">
+<property name="authenticationEntryPoint" ref="authenticationEntryPoint"/>
+<property name="accessDeniedHandler" ref="accessDeniedHandler"/>
+</bean>
+
+<bean id="authenticationEntryPoint"
+    class="org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint">
+<property name="loginFormUrl" value="/login.jsp"/>
+</bean>
+
+<bean id="accessDeniedHandler"
+	 class="org.springframework.security.web.access.AccessDeniedHandlerImpl">
+<property name="errorPage" value="/accessDenied.htm"/>
+</bean>
+```
+##### 1.2.1 AuthenticationEntryPoint
+
+The AuthenticationEntryPoint will be called if the user requests a secure HTTP resource but they are not authenticated.
+
+An appropriate AuthenticationException or AccessDeniedException will be thrown by a security interceptor further down the call stack, triggering the commence method on the entry point.
+
+The one we’ve used here is LoginUrlAuthenticationEntryPoint, which redirects the request to a different URL (typically a login page).
+
+##### 1.2.2 AccessDeniedHandler
+
+If an AccessDeniedException is thrown and a user has already been authenticated, then this means that an operation has been attempted for which they don’t have enough permissions. In this case, ExceptionTranslationFilter will invoke a second strategy, the AccessDeniedHandler.
+
+By default, an AccessDeniedHandlerImpl is used, which just sends a 403 (Forbidden) response to the client.
+
+It’s also possible to supply a custom AccessDeniedHandler when you’re using the namespace to configure your application. See the namespace appendix for more details.
+
+##### 1.2.3 SavedRequest s and the RequestCache Interface
+Another responsibility of ExceptionTranslationFilter responsibilities is to save the current request before invoking the AuthenticationEntryPoint. This allows the request to be restored after the user has authenticated. A typical example would be where the user logs in with a form, and is then redirected to the original URL by the default SavedRequestAwareAuthenticationSuccessHandler.
+
+#### 1.3 SecurityContextPersistenceFilter
+this filter has two main tasks. It is responsible for storage of the SecurityContext contents between HTTP requests and for clearing the SecurityContextHolder when a request is completed.
+
+##### 1.3.1 SecurityContextRepository
+
+```
+public interface SecurityContextRepository {
+
+SecurityContext loadContext(HttpRequestResponseHolder requestResponseHolder);
+
+void saveContext(SecurityContext context, HttpServletRequest request,
+		HttpServletResponse response);
+}
+```
+The HttpRequestResponseHolder is simply a container for the incoming request and response objects, allowing the implementation to replace these with wrapper classes. The returned contents will be passed to the filter chain.
+
+The default implementation is HttpSessionSecurityContextRepository, which stores the security context as an HttpSession attribute .
+The most important configuration parameter for this implementation is the allowSessionCreation property, which defaults to true, thus allowing the class to create a session if it needs one to store the security context for an authenticated user (it won’t create one unless authentication has taken place and the contents of the security context have changed). If you don’t want a session to be created, then you can set this property to false.
+
+
+#### 1.4 UsernamePasswordAuthenticationFilter
+This filter is the most commonly used authentication filter and the one that is most often customized
+
+>There are three stages required to configure it
+>- Configure a LoginUrlAuthenticationEntryPoint with the URL of the login page, just as we did above, and set it on the ExceptionTranslationFilter.
+>- Implement the login page (using a JSP or MVC controller).
+>- Configure an instance of UsernamePasswordAuthenticationFilter in the application context
+>- Add the filter bean to your filter chain proxy (making sure you pay attention to the order).
+
+```
+<bean id="authenticationFilter" class=
+        "org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter">
+    <property name="authenticationManager" ref="authenticationManager"/>
+</bean>
+```
+
+##### 1.4.1 Application Flow on Authentication Success and Failure
+The filter calls the configured AuthenticationManager to process each authentication request.
+
+The destination following a successful authentication or an authentication failure is controlled by the AuthenticationSuccessHandler and AuthenticationFailureHandler strategy interfaces, respectively.
+
+If authentication is successful, the resulting Authentication object will be placed into the SecurityContextHolder.
+
+The configured AuthenticationSuccessHandler will then be called to either redirect or forward the user to the appropriate destination. By default a SavedRequestAwareAuthenticationSuccessHandler is used, which means that the user will be redirected to the original destination they requested before they were asked to login.
+
+---
+
+### Servlet API integration
+
+#### Servlet 2.5+ Integration
+
+The **HttpServletRequest.getRemoteUser()** will return the result of SecurityContextHolder.getContext().getAuthentication().getName() which is typically the current username.
+
+Knowing if the user is authenticated or not can be useful for determining if certain UI elements should be shown or not.
+
+The **HttpServletRequest.getUserPrincipal()** will return the result of SecurityContextHolder.getContext().getAuthentication().
+
+his means it is an Authentication which is typically an instance of UsernamePasswordAuthenticationToken when using username and password based authentication.
+
+The **HttpServletRequest.isUserInRole(String)** will determine if SecurityContextHolder.getContext().getAuthentication().getAuthorities() contains a GrantedAuthority with the role passed into isUserInRole(String).
+```
+boolean isAdmin = httpServletRequest.isUserInRole("ADMIN");
+```
+
+#### Servlet 3+ Integration
+The **HttpServletRequest.authenticate(HttpServletRequest,HttpServletResponse)** method can be used to ensure that a user is authenticated. If they are not authenticated, the configured AuthenticationEntryPoint will be used to request the user to authenticate (i.e. redirect to the login page).
+
+The HttpServletRequest.login(String,String) method can be used to authenticate the user with the current AuthenticationManager. For example, the following would attempt to authenticate with the username "user" and password "password":
+```
+try {
+httpServletRequest.login("user","password");
+} catch(ServletException e) {
+// fail to authenticate
+}
+```
+It is not necessary to catch the ServletException if you want Spring Security to process the failed authentication attempt.
+
+The **HttpServletRequest.logout()** method can be used to log the current user out.
+
+AsyncContext.start(Runnable)
+
+Async Servlet Support
+
+#### Servlet 3.1+ Integration
+
+The **HttpServletRequest.changeSessionId()** is the default method for protecting against Session Fixation attacks in Servlet 3.1 and higher.
+
+
+---
+
+### Basic and Digest Authentication
+
+Basic and digest authentication are alternative authentication mechanisms which are popular in web applications. Basic authentication is often used with stateless clients which pass their credentials on each request.
+
+#### 3.1 BasicAuthenticationFilter
+BasicAuthenticationFilter is responsible for processing basic authentication credentials presented in HTTP headers.
+
+The standard governing HTTP Basic Authentication is defined by RFC 1945, Section 11, and BasicAuthenticationFilter conforms with this RFC.
+
+##### 3.1.1 Configuration
+
+To implement HTTP Basic Authentication, you need to add a BasicAuthenticationFilter to your filter chain. The application context should contain BasicAuthenticationFilter and its required collaborator:
+```
+<bean id="basicAuthenticationFilter"
+        class="org.springframework.security.web.authentication.www.BasicAuthenticationFilter">
+    <property name="authenticationManager" ref="authenticationManager"/>
+    <property name="authenticationEntryPoint" ref="authenticationEntryPoint"/>
+</bean>
+
+<bean id="authenticationEntryPoint"
+        class="org.springframework.security.web.authentication.www.BasicAuthenticationEntryPoint">
+    <property name="realmName" value="Name Of Your Realm"/>
+</bean>
+```
+The configured AuthenticationManager processes each authentication request. If authentication fails, the configured AuthenticationEntryPoint will be used to retry the authentication process.
+Usually you will use the filter in combination with a BasicAuthenticationEntryPoint, which returns a 401 response with a suitable header to retry HTTP Basic authentication. If authentication is successful, the resulting Authentication object will be placed into the SecurityContextHolder as usual.
+
+##### 3.2 DigestAuthenticationFilter
+DigestAuthenticationFilter is capable of processing digest authentication credentials presented in HTTP headers.
+
+Digest Authentication attempts to solve many of the weaknesses of Basic authentication, specifically by ensuring credentials are never sent in clear text across the wire. Many user agents support Digest Authentication, including Mozilla Firefox and Internet Explorer.
+
+Digest Authentication is a more attractive option if you need to use unencrypted HTTP (i.e. no TLS/HTTPS) and wish to maximise security of the authentication process. Indeed Digest Authentication is a mandatory requirement for the WebDAV protocol, as noted by RFC 2518 Section 17.1.
+
+You should not use Digest in modern applications because it is not considered secure. The most obvious problem is that you must store your passwords in plaintext, encrypted, or an MD5 format. All of these storage formats are considered insecure. Instead, you should use a one way adaptive password hash (i.e. bCrypt, PBKDF2, SCrypt, etc).
+
+##### 3.2.1 Configuration
+To implement HTTP Digest Authentication, it is necessary to define DigestAuthenticationFilter in the filter chain. The application context will need to define the DigestAuthenticationFilter and its required collaborators:
+```
+<bean id="digestFilter" class=
+    	   "org.springframework.security.web.authentication.www.DigestAuthenticationFilter">
+    <property name="userDetailsService" ref="jdbcDaoImpl"/>
+    <property name="authenticationEntryPoint" ref="digestEntryPoint"/>
+    <property name="userCache" ref="userCache"/>
+</bean>
+
+<bean id="digestEntryPoint" class=
+    	   "org.springframework.security.web.authentication.www.DigestAuthenticationEntryPoint">
+    <property name="realmName" value="Contacts Realm via Digest Authentication"/>
+    <property name="key" value="acegi"/>
+    <property name="nonceValiditySeconds" value="10"/>
+</bean>
+```
+
+The configured UserDetailsService is needed because DigestAuthenticationFilter must have direct access to the clear text password of a user. Digest Authentication will NOT work if you are using encoded passwords in your DAO.
+
+### Remember-Me Authentication
+Remember-me or persistent-login authentication refers to web sites being able to remember the identity of a principal between sessions.
+
+This is typically accomplished by sending a cookie to the browser, with the cookie being detected during future sessions and causing automated login to take place.
+
+Spring Security provides the necessary hooks for these operations to take place, and has two concrete remember-me implementations. One uses hashing to preserve the security of cookie-based tokens and the other uses a database or other persistent storage mechanism to store the generated tokens.
+
+#### Simple Hash-Based Token Approach
+
+Note that both implementations require a UserDetailsService. If you are using an authentication provider which doesn’t use a UserDetailsService (for example, the LDAP provider) then it won’t work unless you also have a UserDetailsService bean in your application context.
+
+
+#### Cross Site Request Forgery (CSRF)
+
+CSRF protection is enabled by default with Java Configuration. If you would like to disable CSRF, the corresponding Java configuration can be seen below. Refer to the Javadoc of csrf() for additional customizations in how CSRF protection is configured.
+```
+@EnableWebSecurity
+public class WebSecurityConfig extends
+WebSecurityConfigurerAdapter {
+
+	@Override
+	protected void configure(HttpSecurity http) throws Exception {
+		http
+			.csrf().disable();
+	}
+}
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```
+
+```
