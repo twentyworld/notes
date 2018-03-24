@@ -373,6 +373,71 @@ protected Resource[] getConfigResources() {
 ```
 这里面调用了XmlBeanDefinitionReader..loadBeanDefinitions(configLocations);
 
+#### 3.2.4 BeanDefinition 读取Bean定义资源
+
+![][5]
+在抽象类AbstractBeanDefinitionReader中定义了
+
+```
+public abstract class AbstractBeanDefinitionReader implements EnvironmentCapable, BeanDefinitionReader {
+
+  public int loadBeanDefinitions(String... locations) throws BeanDefinitionStoreException {
+		Assert.notNull(locations, "Location array must not be null");
+		int counter = 0;
+		for (String location : locations) {
+			counter += loadBeanDefinitions(location);
+		}
+		return counter;
+	}
+
+  public int loadBeanDefinitions(String location) throws BeanDefinitionStoreException {
+		return loadBeanDefinitions(location, null);
+	}
+  public int loadBeanDefinitions(String location, @Nullable Set<Resource> actualResources) throws BeanDefinitionStoreException {
+		ResourceLoader resourceLoader = getResourceLoader();
+		if (resourceLoader == null) {
+			throw new BeanDefinitionStoreException(
+					"Cannot import bean definitions from location [" + location + "]: no ResourceLoader available");
+		}
+
+		if (resourceLoader instanceof ResourcePatternResolver) {
+			// Resource pattern matching available.
+			try {
+				Resource[] resources = ((ResourcePatternResolver) resourceLoader).getResources(location);
+				int loadCount = loadBeanDefinitions(resources);
+				if (actualResources != null) {
+					for (Resource resource : resources) {
+						actualResources.add(resource);
+					}
+				}
+				if (logger.isDebugEnabled()) {
+					logger.debug("Loaded " + loadCount + " bean definitions from location pattern [" + location + "]");
+				}
+				return loadCount;
+			}
+			catch (IOException ex) {
+				throw new BeanDefinitionStoreException(
+						"Could not resolve bean definition resource pattern [" + location + "]", ex);
+			}
+		}
+		else {
+			// Can only load single resources by absolute URL.
+			Resource resource = resourceLoader.getResource(location);
+			int loadCount = loadBeanDefinitions(resource);
+			if (actualResources != null) {
+				actualResources.add(resource);
+			}
+			if (logger.isDebugEnabled()) {
+				logger.debug("Loaded " + loadCount + " bean definitions from location [" + location + "]");
+			}
+			return loadCount;
+		}
+	}
+
+}
+```
+
+
 
 
 
@@ -423,3 +488,4 @@ protected Resource[] getConfigResources() {
 [2]:https://s26.postimg.org/5pisndljd/spring_beandefinition.png
 [3]:https://s26.postimg.org/s2qjah4k9/classpathxmlapplicaitoncontext.png
 [4]:https://s26.postimg.org/vmch0e9vt/xmlbean_Factory.png
+[5]:https://s26.postimg.org/d0s358tdl/Abstract_Bean_Definition_Reader.png
