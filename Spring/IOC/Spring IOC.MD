@@ -849,6 +849,163 @@ public AbstractBeanDefinition parseBeanDefinitionElement(
 
 
 
+#### 3.2.5 DefaultListableBeanFactory向IoC容器注册解析后的BeanDefinition
+```
+public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocumentReader {
+    protected void processBeanDefinition(Element ele, BeanDefinitionParserDelegate delegate) {
+      BeanDefinitionHolder bdHolder = delegate.parseBeanDefinitionElement(ele);
+      if (bdHolder != null) {
+        bdHolder = delegate.decorateBeanDefinitionIfRequired(ele, bdHolder);
+        try {
+          // Register the final decorated instance.
+          BeanDefinitionReaderUtils.registerBeanDefinition(bdHolder, getReaderContext().getRegistry());
+        }
+        catch (BeanDefinitionStoreException ex) {
+          getReaderContext().error("Failed to register bean definition with name '" +
+              bdHolder.getBeanName() + "'", ele, ex);
+        }
+        // Send registration event.
+        getReaderContext().fireComponentRegistered(new BeanComponentDefinition(bdHolder));
+      }
+    }
+}
+```
+在这里 DefaultBeanDefinitionDocumentReader调用了BeanDefinitionReaderUtils.registerBeanDefinition
+```
+public static void registerBeanDefinition(
+    BeanDefinitionHolder definitionHolder, BeanDefinitionRegistry registry)
+    throws BeanDefinitionStoreException {
+
+  // Register bean definition under primary name.
+  String beanName = definitionHolder.getBeanName();
+  //向IoC容器注册BeanDefinition
+  registry.registerBeanDefinition(beanName, definitionHolder.getBeanDefinition());
+
+  // Register aliases for bean name, if any.
+  String[] aliases = definitionHolder.getAliases();
+  if (aliases != null) {
+    for (String alias : aliases) {
+      registry.registerAlias(beanName, alias);
+    }
+  }
+}
+```
+
+##### 3.2.5.1 DefaultListableBeanFactory向IoC容器注册解析后的BeanDefinition：
+DefaultListableBeanFactory中使用一个HashMap的集合对象存放IoC容器中注册解析的BeanDefinition，向IoC容器注册的主要源码如下：
+```
+public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFactory
+		implements ConfigurableListableBeanFactory, BeanDefinitionRegistry, Serializable {
+      /** Map of bean definition objects, keyed by bean name */
+      private final Map<String, BeanDefinition> beanDefinitionMap =
+          new ConcurrentHashMap<String, BeanDefinition>(256);
+
+      public void registerBeanDefinition(String beanName, BeanDefinition beanDefinition)
+      			throws BeanDefinitionStoreException {
+
+      		Assert.hasText(beanName, "Bean name must not be empty");
+      		Assert.notNull(beanDefinition, "BeanDefinition must not be null");
+
+      		if (beanDefinition instanceof AbstractBeanDefinition) {
+      			try {
+      				((AbstractBeanDefinition) beanDefinition).validate();
+      			}
+      			catch (BeanDefinitionValidationException ex) {
+      				throw new BeanDefinitionStoreException(beanDefinition.getResourceDescription(), beanName,
+      						"Validation of bean definition failed", ex);
+      			}
+      		}
+
+      		BeanDefinition oldBeanDefinition;
+
+      		oldBeanDefinition = this.beanDefinitionMap.get(beanName);
+      		if (oldBeanDefinition != null) {
+      			if (!isAllowBeanDefinitionOverriding()) {
+      				throw new BeanDefinitionStoreException(beanDefinition.getResourceDescription(), beanName,
+      						"Cannot register bean definition [" + beanDefinition + "] for bean '" + beanName +
+      						"': There is already [" + oldBeanDefinition + "] bound.");
+      			}
+      			else if (oldBeanDefinition.getRole() < beanDefinition.getRole()) {
+      				// e.g. was ROLE_APPLICATION, now overriding with ROLE_SUPPORT or ROLE_INFRASTRUCTURE
+      				if (this.logger.isWarnEnabled()) {
+      					this.logger.warn("Overriding user-defined bean definition for bean '" + beanName +
+      							"' with a framework-generated bean definition: replacing [" +
+      							oldBeanDefinition + "] with [" + beanDefinition + "]");
+      				}
+      			}
+      			else if (!beanDefinition.equals(oldBeanDefinition)) {
+      				if (this.logger.isInfoEnabled()) {
+      					this.logger.info("Overriding bean definition for bean '" + beanName +
+      							"' with a different definition: replacing [" + oldBeanDefinition +
+      							"] with [" + beanDefinition + "]");
+      				}
+      			}
+      			else {
+      				if (this.logger.isDebugEnabled()) {
+      					this.logger.debug("Overriding bean definition for bean '" + beanName +
+      							"' with an equivalent definition: replacing [" + oldBeanDefinition +
+      							"] with [" + beanDefinition + "]");
+      				}
+      			}
+      			this.beanDefinitionMap.put(beanName, beanDefinition);
+      		}
+      		else {
+      			if (hasBeanCreationStarted()) {
+      				// Cannot modify startup-time collection elements anymore (for stable iteration)
+              //注册的过程中需要线程同步，以保证数据的一致性
+      				synchronized (this.beanDefinitionMap) {
+      					this.beanDefinitionMap.put(beanName, beanDefinition);
+      					List<String> updatedDefinitions = new ArrayList<String>(this.beanDefinitionNames.size() + 1);
+      					updatedDefinitions.addAll(this.beanDefinitionNames);
+      					updatedDefinitions.add(beanName);
+      					this.beanDefinitionNames = updatedDefinitions;
+      					if (this.manualSingletonNames.contains(beanName)) {
+      						Set<String> updatedSingletons = new LinkedHashSet<String>(this.manualSingletonNames);
+      						updatedSingletons.remove(beanName);
+      						this.manualSingletonNames = updatedSingletons;
+      					}
+      				}
+      			}
+      			else {
+      				// Still in startup registration phase
+      				this.beanDefinitionMap.put(beanName, beanDefinition);
+      				this.beanDefinitionNames.add(beanName);
+      				this.manualSingletonNames.remove(beanName);
+      			}
+      			this.frozenBeanDefinitionNames = null;
+      		}
+
+      		if (oldBeanDefinition != null || containsSingleton(beanName)) {
+      			resetBeanDefinition(beanName);
+      		}
+      }
+}
+
+```
+
+至此，Bean定义资源文件中配置的Bean被解析过后，已经注册到IoC容器中，被容器管理起来，真正完成了IoC容器初始化所做的全部工作。现  在IoC容器中已经建立了整个Bean的配置信息，这些BeanDefinition信息已经可以使用，并且可以被检索，IoC容器的作用就是对这些注册的Bean定义信息进行处理和维护。这些的注册的Bean定义信息是IoC容器控制反转的基础，正是有了这些注册的数据，容器才可以进行依赖注入。
+
+### 3.3 总结IOC容器的基本步骤
+
+1. 初始化的入口在容器实现中的 refresh()调用来完成.
+2. 对 bean 定义载入 IOC 容器使用的方法是 loadBeanDefinition,其中的大致过程如下：
+- 为容器设置Bean资源加载器。AbstractApplicationContext构造方法中调用PathMatchingResourcePatternResolver的构造方法创建Spring资源加载器。
+- 设置Bean定义资源文件的定位路径。
+- refresh函数载入Bean定义过程。
+  - obtainFreshBeanFactory()方法 刷新容器.
+  - BeanDefinition 读取Bean定义资源。读取资源转换为Document。DocumentLoader解析xml文件。XmlBeanDefinitionReader解析载入的Bean定义资源文件。BeanDefinitionParserDelegate解析Bean定义资源文件中的<Bean>元素。DefaultListableBeanFactory向IoC容器注册解析后的BeanDefinition。DefaultListableBeanFactory向IoC容器注册解析后的BeanDefinition。
+
+- 通过 ResourceLoader 来完成资源文件位置的定位，DefaultResourceLoader 是默认的实现，同时上下文本身就给出了 ResourceLoader 的实现，可以从类路径，文件系统, URL 等方式来定为资源位置。如果是 XmlBeanFactory作为 IOC 容器，那么需要为它指定 bean 定义的资源，也就是说 bean 定义文件时通过抽象成 Resource 来被 IOC 容器处理的，容器通过 BeanDefinitionReader来完成定义信息的解析和 Bean 信息的注册,往往使用的是XmlBeanDefinitionReader 来解析 bean 的 xml 定义文件 - 实际的处理过程是委托给 BeanDefinitionParserDelegate 来完成的，从而得到 bean 的定义信息，这些信息在 Spring 中使用 BeanDefinition 对象来表示 - 这个名字可以让我们想到loadBeanDefinition,RegisterBeanDefinition  这些相关的方法 - 他们都是为处理 BeanDefinitin 服务的， 容器解析得到 BeanDefinitionIoC 以后，需要把它在 IOC 容器中注册，这由 IOC 实现 BeanDefinitionRegistry 接口来实现。注册过程就是在 IOC 容器内部维护的一个HashMap 来保存得到的 BeanDefinition 的过程。这个 HashMap 是 IoC 容器持有 bean 信息的场所，以后对 bean 的操作都是围绕这个HashMap 来实现的。
+
+3. 然后我们就可以通过 BeanFactory 和 ApplicationContext 来享受到 Spring IOC 的服务了,在使用 IOC 容器的时候，我们注意到除了少量粘合代码，绝大多数以正确 IoC 风格编写的应用程序代码完全不用关心如何到达工厂，因为容器将把这些对象与容器管理的其他对象钩在一起。基本的策略是把工厂放到已知的地方，最好是放在对预期使用的上下文有意义的地方，以及代码将实际需要访问工厂的地方。 Spring 本身提供了对声明式载入 web 应用程序用法的应用程序上下文,并将其存储在ServletContext 中的框架实现。
+
+>  Beanfactory 和 Factory bean，其中 BeanFactory 指的是 IOC 容器的编程抽象，比如 ApplicationContext， XmlBeanFactory 等，这些都是 IOC 容器的具体表现，需要使用什么样的容器由客户决定,但 Spring 为我们提供了丰富的选择。 FactoryBean 只是一个可以在 IOC而容器中被管理的一个 bean,是对各种处理过程和资源使用的抽象,Factory bean 在需要时产生另一个对象，而不返回 FactoryBean本身,我们可以把它看成是一个抽象工厂，对它的调用返回的是工厂生产的产品。所有的 Factory bean 都实现特殊的org.springframework.beans.factory.FactoryBean 接口，当使用容器中 factory bean 的时候，该容器不会返回 factory bean 本身,而是返回其生成的对象。Spring 包括了大部分的通用资源和服务访问抽象的 Factory bean 的实现，其中包括:对 JNDI 查询的处理，对代理对象的处理，对事务性代理的处理，对 RMI 代理的处理等，这些我们都可以看成是具体的工厂,看成是SPRING 为我们建立好的工厂。也就是说 Spring 通过使用抽象工厂模式为我们准备了一系列工厂来生产一些特定的对象,免除我们手工重复的工作，我们要使用时只需要在 IOC 容器里配置好就能很方便的使用了。
+
+## IOC容器的依赖注入
+
+
+
+
 
 
 
