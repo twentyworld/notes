@@ -38,13 +38,17 @@ public interface BeanFactory {
 而要知道工厂是如何产生对象的，我们需要看具体的IOC容器实现，spring提供了许多IOC容器的实现。
 
 ### 2.2 BeanDefinition
-SpringIOC容器管理了我们定义的各种Bean对象及其相互的关系，Bean对象在Spring实现中是以BeanDefinition来描述的. 其继承体系如下![][2]：
+SpringIOC容器管理了我们定义的各种Bean对象及其相互的关系，Bean对象在Spring实现中是以BeanDefinition来描述的. 其继承体系如下
+
+![][2]
 
 
 ## 3. IOC容器初始化
 IoC容器的初始化包括BeanDefinition的Resource定位、载入和注册这三个基本的过程。
 在这里，以ApplciationContext为例。
-![][3]:
+
+![][3]
+
 ApplicationContext允许上下文嵌套，通过保持父上下文可以维持一个上下文体系。对于bean的查找可以在这个上下文体系中发生，首先检查当前上下文，其次是父上下文，逐级向上，这样为不同的Spring应用提供了一个共享的bean定义环境。
 
 ### 3.1 XmlBeanFactory的容器创建过程。
