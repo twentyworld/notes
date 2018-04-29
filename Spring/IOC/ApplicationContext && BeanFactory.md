@@ -1,9 +1,9 @@
 ## ApplicationContext && BeanFactory
-
+---
 ### 定义
 我们可以看[官方文档][2].
 
-![img]:[1]
+![img][1]
 ### 共同点
 BeanFactory和ApplicationContext是Spring的两大核心接口，而其中ApplicationContext是BeanFactory的子接口。它们都可以当做Spring的容器，Spring容器是生成Bean实例的工厂，并管理容器中的Bean。在基于Spring的Java EE应用中，所有的组件都被当成Bean处理，包括数据源，Hibernate的SessionFactory、事务管理器等。
 Spring容器最基本的接口就是BeanFactory。BeanFactory负责配置、创建、管理Bean，它有一个子接口ApplicationContext，也被称为Spring上下文，容器同时还管理着Bean和Bean之间的依赖关系。
@@ -31,6 +31,8 @@ ApplicationContext常用的实现类是FileSystemXmlApplicationContext、ClassPa
 - 事件机制。
 - 同时加载多个配置文件。
 - 以声明式方式启动并创建Spring容器。
+
+---
 
 ### 总结
 BeanFacotry是spring中比较原始的Factory。如XMLBeanFactory就是一种典型的BeanFactory。原始的BeanFactory无法支持spring的许多插件，如AOP功能、Web应用等。
