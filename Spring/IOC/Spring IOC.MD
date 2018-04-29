@@ -151,7 +151,8 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
       this.parent = parent;
       if (parent != null) {
         Environment parentEnvironment = parent.getEnvironment();
-        if (parentEnvironment instanceof ConfigurableEnvironment) getEnvironment().merge((ConfigurableEnvironment) parentEnvironment);
+        if (parentEnvironment instanceof ConfigurableEnvironment)
+          getEnvironment().merge((ConfigurableEnvironment) parentEnvironment);
       }
     }
 }
@@ -229,7 +230,8 @@ public void refresh() throws BeansException, IllegalStateException {
     }
     catch (BeansException ex) {
       if (logger.isWarnEnabled())
-        logger.warn("Exception encountered during context initialization - " + "cancelling refresh attempt: " + ex);
+        logger.warn("Exception encountered during context initialization - "
+          - "cancelling refresh attempt: " + ex);
       // Destroy already created singletons to avoid dangling resources.
       destroyBeans();
       // Reset 'active' flag.
