@@ -45,6 +45,7 @@
 多对多模型结合了一对一模型和多对一模型的优点，将多个用户线程映射到多个内核线程上。多对多模型的优点有：1.一个用户线程的阻塞不会导致所有线程的阻塞，因为此时还有别的内核线程被调度来执行；2.多对多模型对用户线程的数量没有限制；3.在多处理器的操作系统中，多对多模型的线程也能得到一定的性能提升，但提升的幅度不如一对一模型的高。
 
 在现在流行的操作系统中，大都采用多对多的模型。
+
 ![多对多模型][2]
 #### 1.5 线程的生命周期
 当线程的数量小于处理器的数量时，线程的并发是真正的并发，不同的线程运行在不同的处理器上。但当线程的数量大于处理器的数量时，线程的并发会受到一些阻碍，此时并不是真正的并发，因为此时至少有一个处理器会运行多个线程。
@@ -116,7 +117,7 @@ notifyAll 会唤醒所有等待(对象的)线程，尽管哪一个线程将会�
 你可以在[github][5]上看到源码：
 
 一个java bean类，线程将会使用它并调用wait和notify方法。
-```
+```java
 public class Message {
     private String msg;
     public Message(String str){this.msg=str;}
@@ -125,7 +126,7 @@ public class Message {
 }
 ```
 一个Waiter类，等待其它的线程调用notify方法以唤醒线程完成处理。注意等待线程必须通过加synchronized同步锁拥有Message对象的监视器。
-```
+```java
 public class Waiter implements Runnable {
     private Message msg;
     public Waiter(Message m) {this.msg = m;}
@@ -147,7 +148,7 @@ public class Waiter implements Runnable {
 }
 ```
 一个Notifier类，处理Message对象并调用notify方法唤醒等待Message对象的线程。注意synchronized代码块被用于持有Message对象的监视器。
-```
+```java
 public class Notifier implements Runnable {
     private Message msg;
     public Notifier(Message msg) {this.msg = msg;}
@@ -169,7 +170,7 @@ public class Notifier implements Runnable {
 }
 ```
 一个测试类，交付创建多个等待线程和一个通过线程，并启动这些线程。
-```
+```java
 public class WaitNotifyTest {
     public static void main(String[] args) {
 
@@ -187,7 +188,7 @@ public class WaitNotifyTest {
 }
 ```
 在当前例子中，我们可以得到控制台中打出的结果：
-```
+```java
 waiter1 waiting to get notified at time:1525606113222
 waiter waiting to get notified at time:1525606113222
 All the threads are started
@@ -197,7 +198,7 @@ waiter1 processed: notifier Notifier work done
 ```
 
 现在我们修改原来样例为：
-```
+```java
 public class Notifier implements Runnable {
     private Message msg;
     public Notifier(Message msg) {this.msg = msg;}
@@ -219,7 +220,7 @@ public class Notifier implements Runnable {
 ```
 
 得到预期的结果：
-```
+```java
 waiter waiting to get notified at time:1525610336743
 waiter1 waiting to get notified at time:1525610336743
 All the threads are started
@@ -231,7 +232,7 @@ waiter processed: notifier Notifier work done
 ```
 ##### 2.3.2 线程中断(interrupt)
 在Java提供的线程支持类Thread中，有三个用于线程中断的方法：
-```
+```java
 //中断线程。
 public void interrupt();
 
@@ -245,7 +246,7 @@ public boolean isInterrupted();
 以下是测试代码，你可以在[github][8]中看到：
 
 打印线程如果没有被中断，会一直打印。
-```
+```java
 public class InterruptThread implements Runnable {
     @Override
     public void run() {
@@ -261,7 +262,7 @@ public class InterruptThread implements Runnable {
 }
 ```
 测试类：
-```
+```java
 public class InterruptedThreadLearn {
     public static void main(String[] args) {
         InterruptThread printer = new InterruptThread();
@@ -281,7 +282,7 @@ public class InterruptedThreadLearn {
 ```
 
 result:
-```
+```java
 打印线程打印中… …
 打印线程打印中… …
 打印线程打印中… …
@@ -299,7 +300,7 @@ isInterrupted:false
 ![img][6]
 你可以在[github][7]上看到源码：
 两个插件线程：
-```
+```java
 public class PluginFirst implements Runnable {
     @Override
     public void run() {
@@ -314,7 +315,7 @@ public class PluginFirst implements Runnable {
     }
 }
 ```
-```
+```java
 public class PluginSecond implements Runnable {
 
     @Override
@@ -332,7 +333,7 @@ public class PluginSecond implements Runnable {
 }
 ```
 主线程(测试)
-```
+```java
 public class ThreadJoinTest {
     public static void main(String[] args) {
         System.out.println("主线程开启...");
@@ -354,7 +355,7 @@ public class ThreadJoinTest {
 ##### 2.3.4 优先级(Priority)
 
 线程优先级是指获得CPU资源的优先程序。优先级高的容易获得CPU资源，优先级底的较难获得CPU资源，表现出来的情况就是优先级越高执行的时间越多。Java中通过getPriority和setPriority方法获取和设置线程的优先级。Thread类提供了三个表示优先级的常量：MIN_PRIORITY优先级最低，为1；NORM_PRIORITY是正常的优先级；为5，MAX_PRIORITY优先级最高，为10。我们创建线程对象后，如果不显示的设置优先级的话，默认为5。
-```
+```java
 thread1.setPriority(Thread.MAX_PRIORITY);
 thread2.setPriority(8);
 ```
@@ -372,7 +373,7 @@ synchronized是Java中的关键字，是一种同步锁。它修饰的对象有�
 我们可以把第一个第二个在同一个例子中展示(你可以在[github][9]中查看源码)。
 
 Message是同步对象
-```
+```java
 public class Message {
 
     private int number;
@@ -410,7 +411,7 @@ public class Message {
 ```
 
 下面我们创建若干个不同的thread用于获取不同的方法。
-```
+```java
 public class SynchronizedThreadA implements Runnable {
     private Message object;
     public SynchronizedThreadA(Message object) {
@@ -444,7 +445,7 @@ public class SynchronizedThreadD implements Runnable {
 }
 ```
 注意，这里，我们主要是使用的是同一个对象object，在测试类中测试代码：
-```
+```java
 public class SynchronizedInstanceTest {
     public static void main(String[] args) {
         Message object = new Message(); //不同的线程使用同一对象。
@@ -461,7 +462,7 @@ public class SynchronizedInstanceTest {
 }
 ```
 会发现在控制台中，按照时间间隔打印出：
-```
+```java
 Thread-0, method a, number= 1
 Thread-8, method c, number= 2
 Thread-7, method c, number= 3
@@ -474,7 +475,7 @@ Thread-1, method a, number= 9
 ```
 你会发现，synchronized用代码块和在方法上的效果是一样的。
 ##### 3.1.1 synchronized 作用于不同对象
-```
+```java
 public class SyncDiffMethodTest {
     public static void main(String[] args) {
         Message message1 = new Message();
@@ -489,7 +490,7 @@ public class SyncDiffMethodTest {
 }
 ```
 result:
-```
+```java
 Thread-0, method a, number= 1
 Thread-3, method b, number= 1
 Thread-1, method a, number= 2
@@ -502,7 +503,7 @@ Thread-5, method b, number= 3
 ##### 3.1.2 synchronized 和 非synchronized方法
 
 同样是获取同一个对象。
-```
+```java
 public class SyncAndNoSyncMethodTest {
     public static void main(String[] args) {
         Message message = new Message();
@@ -517,7 +518,7 @@ public class SyncAndNoSyncMethodTest {
 ```
 
 result：
-```
+```java
 ···
 Thread-2, method a, number= 8929
 ···
@@ -529,9 +530,19 @@ Thread-0, method a, number= 9991
 这时，d方法会被快速打印出来，也就是说，虽然，syncronized虽然会锁住对象，但是，并不影响非synchronized方法的执行。
 Synchronized会使其他synchronized方法无法竞争到锁。
 
+通过以上几个例子，我们知道多个线程调用同一个对象中的不同名称的synchronized同步方法或synchronized(this)同步代码块时，是同步的。
+1. synchronized同步方法
+- 对其它的synchronized同步方法或synchronized(this)同步代码块调用是堵塞状态；
+- 同一时间只有一个线程执行synchronized同步方法中的代码。
+
+2. synchronized(this)同步代码块
+- 对其它的synchronized同步方法或synchronized(this)同步代码块调用是堵塞状态；
+- 同一时间只有一个线程执行synchronized同步方法中的代码。
+
+__
 ####修饰一个静态的方法
 我们知道静态方法是属于类的而不属于对象的。同样的，synchronized修饰的静态方法锁定的是这个类的所有对象。
-```
+``` java
 public class StaticMethodTest {
     public static void main(String[] args) {
         Message message1 = new Message();
@@ -547,7 +558,7 @@ public class StaticMethodTest {
 }
 ```
 result:
-```
+```java
 Thread-0, method e, number= 1
 Thread-2, method e, number= 2
 Thread-5, method e, number= 3
@@ -555,7 +566,72 @@ Thread-3, method e, number= 4
 Thread-4, method e, number= 5
 Thread-1, method e, number= 6
 ```
-虽然不是同一个对象，但是，
+synchronized应用在static方法上，那是对当前对应的*.Class进行持锁。
+
+#### synchronized(\*.class)代码块
+
+
+在message中添加方法：
+```Java
+public static synchronized int methodE() {
+
+    try {
+        Thread.sleep(1000);
+    } catch (InterruptedException e) {
+        e.printStackTrace();
+    }
+    numbers = numbers +1;
+    return numbers;
+}
+
+public int methodG() {
+    synchronized (Message.class) {
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        numbers = numbers +1;
+        return numbers;
+    }
+}
+```
+在测试类中测试代码
+```Java
+public class SyncClassTest {
+    public static void main(String[] args) {
+        Message message1 = new Message();
+        Message message2 = new Message();
+
+        for (int i = 0; i < 3; i++) {
+            new Thread(new SynchronizedThreadE(message1)).start();
+        }
+        for (int i = 0; i < 3; i++) {
+            new Thread(new SynchronizedThreadG(message1)).start();
+        }
+        for (int i = 0; i < 3; i++) {
+            new Thread(new SynchronizedThreadG(message2)).start();
+        }
+    }
+}
+```
+result:
+```Java
+Thread-1, method e, number= 1
+Thread-8, method g, number= 2
+Thread-7, method g, number= 3
+Thread-5, method g, number= 4
+Thread-6, method g, number= 5
+Thread-4, method g, number= 6
+Thread-3, method g, number= 7
+Thread-0, method e, number= 8
+Thread-2, method e, number= 9
+```
+同步synchronized(\*.class)代码块的作用其实和synchronized static方法作用一样。Class锁对类的所有对象实例起作用。
+
+总结：
+Java语法规定，任何线程执行同步方法、同步代码块之前，必须先获取对应的监视器。并且监听器this 和 \*.class 是不同的。
+this 是对用方法的对象本身 class 是该类本身(只有监听器相同锁才会起作用)。
 
 
 
@@ -600,8 +676,7 @@ Thread-1, method e, number= 6
 
 
 
-
-引用：
+引用文章：
 
 [编程思想之多线程与多进程(1)——以操作系统的角度述说线程与进程][1]
 
