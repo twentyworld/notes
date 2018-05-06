@@ -629,15 +629,36 @@ Thread-2, method e, number= 9
 
 但是，请注意：
 
-<font color=#117A65>
-Java语法规定，任何线程执行同步方法、同步代码块之前，必须先获取对应的监视器。并且监听器this 和 \*.class 是不同的。
-this 是对用方法的对象本身 class 是该类本身(只有监听器相同锁才会起作用)。
-当synchronized作用于静态方法时，其锁就是当前类的class对象锁。由于静态成员不专属于任何一个实例对象，是类成员，因此通过class对象锁可以控制静态 成员的并发操作。需要注意的是如果一个线程A调用一个实例对象的非static synchronized方法，而线程B需要调用这个实例对象所属类的静态 synchronized方法，是允许的，不会发生互斥现象，因为访问静态 synchronized 方法占用的锁是当前类的class对象，而访问非静态 synchronized 方法占用的锁是当前实例对象锁。
-</font>
+<font color=#528B8B>Java语法规定，任何线程执行同步方法、同步代码块之前，必须先获取对应的监视器。并且监听器this 和 \*.class 是不同的。
+this是对用方法的对象本身 class是该类本身(只有监听器相同锁才会起作用)。
+当synchronized作用于静态方法时，其锁就是当前类的class对象锁。由于静态成员不专属于任何一个实例对象，是类成员，因此通过class对象锁可以控制静态 成员的并发操作。需要注意的是如果一个线程A调用一个实例对象的非static synchronized方法，而线程B需要调用这个实例对象所属类的静态 synchronized方法，是允许的，不会发生互斥现象，因为访问静态 synchronized 方法占用的锁是当前类的class对象，而访问非静态 synchronized 方法占用的锁是当前实例对象锁。</font>
 
+**总结：**
 
+1. 类的每个实例都有自己的对象级别锁。当一个线程访问实例对象中的synchronized同步代码块或同步方法时，该线程便获取了该实例的对象级别锁，其他线程这时如果要访问synchronized同步代码块或同步方法，便需要阻塞等待，直到前面的线程从同步代码块或方法中退出，释放掉了该对象级别锁。
 
+2. 访问同一个类的不同实例对象中的同步代码块，不存在阻塞等待获取对象锁的问题，因为它们获取的是各自实例的对象级别锁，相互之间没有影响。
 
+3. 持有一个对象级别锁不会阻止该线程被交换出来，也不会阻塞其他线程访问同一示例对象中的非synchronized代码。当一个线程A持有一个对象级别锁（即进入了synchronized修饰的代码块或方法中）时，线程也有可能被交换出去，此时线程B有可能获取执行该对象中代码的时间，但它只能执行非同步代码（没有用synchronized修饰），当执行到同步代码时，便会被阻塞，此时可能线程规划器又让A线程运行，A线程继续持有对象级别锁，当A线程退出同步代码时（即释放了对象级别锁），如果B线程此时再运行，便会获得该对象级别锁，从而执行synchronized中的代码。
+
+4. 使用synchronized（obj）同步语句块，可以获取指定对象上的对象级别锁。
+
+5. 互斥是实现同步的一种手段，临界区、互斥量和信号量都是主要的互斥实现方式。synchronized关键字经过编译后，会在同步块的前后分别形成monitorenter和monitorexit这两个字节码指令。根据虚拟机规范的要求，在执行monitorenter指令时，首先要尝试获取对象的锁，如果获得了锁，把锁的计数器加1，相应地，在执行monitorexit指令时会将锁计数器减1，当计数器为0时，锁便被释放了。由于synchronized同步块对同一个线程是可重入的，因此一个线程可以多次获得同一个对象的互斥锁，同样，要释放相应次数的该互斥锁，才能最终释放掉该锁。
+
+<font color=#117A65>**synchronized 的另个一重要作用：内存可见性**</font>
+
+加锁（synchronized 同步）的功能不仅仅局限于互斥行为，同时还存在另外一个重要的方面：内存可见性。我们不仅希望防止某个线程正在使用对象状态而另一个线程在同时修改该状态，而且还希望确保当一个线程修改了对象状态后，其他线程能够看到该变化。而线程的同步恰恰也能够实现这一点。
+
+这里比较下volatile 和synchronized 变量实现内存可见性的方法二者的区别。
+> - volatile 变量是一种稍弱的同步机制在访问 volatile 变量时不会执行加锁操作，因此也就不会使执行线程阻塞，因此 volatile 变量是一种比 synchronized 关键字更轻量级的同步机制。
+> - 从内存可见性的角度看，写入 volatile 变量相当于退出同步代码块，而读取 volatile 变量相当于进入同步代码块。
+> - 在代码中如果过度依赖 volatile 变量来控制状态的可见性，通常会比使用锁的代码更脆弱，也更难以理解。仅当 volatile 变量能简化代码的实现以及对同步策略的验证时，才应该使用它。一般来说，用同步机制会更安全些。
+> - 加锁机制（即同步机制）既可以确保可见性又可以确保原子性，而 volatile 变量只能确保可见性，原因是声明为 volatile 的简单变量如果当前值与该变量以前的值相关，那么 volatile 关键字不起作用，也就是说如下的表达式都不是原子操作：count++、count = count+1。
+
+当且仅当满足以下所有条件时，才应该使用 volatile 变量：
+
+> - 对变量的写入操作不依赖变量的当前值，或者你能确保只有单个线程更新变量的值。
+> - 该变量没有包含在具有其他变量的不变式中。
 
 ### 4. synchronized 底层实现
 
@@ -780,6 +801,100 @@ public class SyncMethod {
 
 从字节码中可以看出，`synchronized`修饰的方法并没有`monitorenter`指令和`monitorexit`指令，取得代之的确实是`ACC_SYNCHRONIZED`标识，该标识指明了该方法是一个同步方法，JVM通过该`ACC_SYNCHRONIZED`访问标志来辨别一个方法是否声明为同步方法，从而执行相应的同步调用。这便是`synchronized`锁在同步代码块和同步方法上实现的基本原理。同时我们还必须注意到的是在Java早期版本中，`synchronized`属于重量级锁，效率低下，因为监视器锁`（monitor）`是依赖于底层的操作系统的`Mutex Lock`来实现的，而操作系统实现线程之间的切换时需要从用户态转换到核心态，这个状态之间的转换需要相对比较长的时间，时间成本相对较高，这也是为什么早期的`synchronized`效率低的原因。庆幸的是在`Java 6`之后Java官方对从JVM层面对`synchronized`较大优化，所以现在的`synchronized`锁效率也优化得很不错了，`Java 6`之后，为了减少获得锁和释放锁所带来的性能消耗，引入了轻量级锁和偏向锁，接下来我们将简单了解一下Java官方在JVM层面对`synchronized`锁的优化。
 
+#### 4.4 synchronized底层原理
+其应用层的语义是可以把任何一个非null对象 作为"锁"，当synchronized作用在方法上时，锁住的便是对象实例（this）；当作用在静态方法时锁住的便是对象对应的Class实例，因为 Class数据存在于永久带，因此静态方法锁相当于该类的一个全局锁；当synchronized作用于某一个对象实例时，锁住的便是对应的代码块。在 HotSpot JVM实现中，锁有个专门的名字：对象监视器。
+
+>在java虚拟机中，每个对象和类在逻辑上都是和一个监视器相关联的。
+> - 对于对象来说，相关联的监视器保护对象的实例变量。
+> - 对于类来说，监视器保护类的类变量。
+##### 4.4.1 线程状态及状态转换
+当多个线程同时请求某个对象监视器时，对象监视器会设置几种状态用来区分请求的线程：
+
+1. Contention List：所有请求锁的线程将被首先放置到该竞争队列
+2. Entry List：Contention List中那些有资格成为候选人的线程被移到Entry List
+3. Wait Set：那些调用wait方法被阻塞的线程被放置到Wait Set
+4. OnDeck：任何时刻最多只能有一个线程正在竞争锁，该线程称为OnDeck
+5. Owner：获得锁的线程称为Owner
+6. !Owner：释放锁的线程
+
+![img][19]
+
+新请求锁的线程将首先被加入到ConetentionList中，当某个拥有锁的线程（Owner状态）调用unlock之后，如果发现 EntryList为空则从ContentionList中移动线程到EntryList，下面说明下ContentionList和EntryList 的实现方式。
+
+##### 4.4.2 ContentionList 虚拟队列
+ContentionList并不是一个真正的Queue，而只是一个虚拟队列，原因在于ContentionList是由Node及其next指 针逻辑构成，并不存在一个Queue的数据结构。ContentionList是一个后进先出（LIFO）的队列，每次新加入Node时都会在队头进行， 通过CAS改变第一个节点的的指针为新增节点，同时设置新增节点的next指向后续节点，而取得操作则发生在队尾。显然，该结构其实是个Lock- Free的队列。
+
+因为只有Owner线程才能从队尾取元素，也即线程出列操作无争用，当然也就避免了CAS的ABA问题。
+
+![img][20]
+
+##### 4.4.3 EntryList
+
+EntryList与ContentionList逻辑上同属等待队列，ContentionList会被线程并发访问，为了降低对 ContentionList队尾的争用，而建立EntryList。Owner线程在unlock时会从ContentionList中迁移线程到 EntryList，并会指定EntryList中的某个线程（一般为Head）为Ready（OnDeck）线程。Owner线程并不是把锁传递给 OnDeck线程，只是把竞争锁的权利交给OnDeck，OnDeck线程需要重新竞争锁。这样做虽然牺牲了一定的公平性，但极大的提高了整体吞吐量，在 Hotspot中把OnDeck的选择行为称之为“竞争切换”。
+
+OnDeck线程获得锁后即变为owner线程，无法获得锁则会依然留在EntryList中，考虑到公平性，在EntryList中的位置不 发生变化（依然在队头）。如果Owner线程被wait方法阻塞，则转移到WaitSet队列；如果在某个时刻被notify/notifyAll唤醒， 则再次转移到EntryList。
+
+##### 4.4.4 自旋锁
+
+那些处于ContetionList、EntryList、WaitSet中的线程均处于阻塞状态，阻塞操作由操作系统完成（在Linxu下通 过pthread_mutex_lock函数）。线程被阻塞后便进入内核（Linux）调度状态，这个会导致系统在用户态与内核态之间来回切换，严重影响 锁的性能
+
+缓解上述问题的办法便是自旋，其原理是：当发生争用时，若Owner线程能在很短的时间内释放锁，则那些正在争用线程可以稍微等一等（自旋）， 在Owner线程释放锁后，争用线程可能会立即得到锁，从而避免了系统阻塞。但Owner运行的时间可能会超出了临界值，争用线程自旋一段时间后还是无法 获得锁，这时争用线程则会停止自旋进入阻塞状态（后退）。基本思路就是自旋，不成功再阻塞，尽量降低阻塞的可能性，这对那些执行时间很短的代码块来说有非 常重要的性能提高。自旋锁有个更贴切的名字：自旋-指数后退锁，也即复合锁。很显然，自旋在多处理器上才有意义。
+
+还有个问题是，线程自旋时做些啥？其实啥都不做，可以执行几次for循环，可以执行几条空的汇编指令，目的是占着CPU不放，等待获取锁的机 会。所以说，自旋是把双刃剑，如果旋的时间过长会影响整体性能，时间过短又达不到延迟阻塞的目的。显然，自旋的周期选择显得非常重要，但这与操作系统、硬 件体系、系统的负载等诸多场景相关，很难选择，如果选择不当，不但性能得不到提高，可能还会下降，因此大家普遍认为自旋锁不具有扩展性。
+
+自旋优化策略
+
+对自旋锁周期的选择上，HotSpot认为最佳时间应是一个线程上下文切换的时间，但目前并没有做到。经过调查，目前只是通过汇编暂停了几个CPU周期，除了自旋周期选择，HotSpot还进行许多其他的自旋优化策略，具体如下：
+
+如果平均负载小于CPUs则一直自旋
+
+如果有超过(CPUs/2)个线程正在自旋，则后来线程直接阻塞
+
+如果正在自旋的线程发现Owner发生了变化则延迟自旋时间（自旋计数）或进入阻塞
+
+如果CPU处于节电模式则停止自旋
+
+自旋时间的最坏情况是CPU的存储延迟（CPU A存储了一个数据，到CPU B得知这个数据直接的时间差）
+
+自旋时会适当放弃线程优先级之间的差异
+
+那synchronized实现何时使用了自旋锁？答案是在线程进入ContentionList时，也即第一步操作前。线程在进入等待队列时 首先进行自旋尝试获得锁，如果不成功再进入等待队列。这对那些已经在等待队列中的线程来说，稍微显得不公平。还有一个不公平的地方是自旋线程可能会抢占了 Ready线程的锁。自旋锁由每个监视对象维护，每个监视对象一个。
+
+##### 4.4.5 JVM1.6偏向锁
+
+在JVM1.6中引入了偏向锁，偏向锁主要解决无竞争下的锁性能问题，首先我们看下无竞争下锁存在什么问题：
+
+现在几乎所有的锁都是可重入的，也即已经获得锁的线程可以多次锁住/解锁监视对象，按照之前的HotSpot设计，每次加锁/解锁都会涉及到一些CAS操 作（比如对等待队列的CAS操作），CAS操作会延迟本地调用，因此偏向锁的想法是一旦线程第一次获得了监视对象，之后让监视对象“偏向”这个 线程，之后的多次调用则可以避免CAS操作，说白了就是置个变量，如果发现为true则无需再走各种加锁/解锁流程。但还有很多概念需要解释、很多引入的 问题需要解决：
+
+#### 4.5 CAS及SMP架构
+CAS为什么会引入本地延迟？这要从SMP（对称多处理器）架构说起
+
+![img][21]
+
+其意思是所有的CPU会共享一条系统总线（BUS），靠此总线连接主存。每个核都有自己的一级缓存，各核相对于BUS对称分布，因此这种结构称为“对称多处理器”。
+
+而CAS的全称为Compare-And-Swap，是一条CPU的原子指令，其作用是让CPU比较后原子地更新某个位置的值，经过调查发现， 其实现方式是基于硬件平台的汇编指令，就是说CAS是靠硬件实现的，JVM只是封装了汇编调用，那些AtomicInteger类便是使用了这些封装后的 接口。
+
+Core1和Core2可能会同时把主存中某个位置的值Load到自己的L1 Cache中，当Core1在自己的L1 Cache中修改这个位置的值时，会通过总线，使Core2中L1 Cache对应的值“失效”，而Core2一旦发现自己L1 Cache中的值失效（称为Cache命中缺失）则会通过总线从内存中加载该地址最新的值，大家通过总线的来回通信称为“Cache一致性流量”，因为总 线被设计为固定的“通信能力”，如果Cache一致性流量过大，总线将成为瓶颈。而当Core1和Core2中的值再次一致时，称为“Cache一致 性”，从这个层面来说，锁设计的终极目标便是减少Cache一致性流量。
+
+而CAS恰好会导致Cache一致性流量，如果有很多线程都共享同一个对象，当某个Core CAS成功时必然会引起总线风暴，这就是所谓的本地延迟，本质上偏向锁就是为了消除CAS，降低Cache一致性流量。
+
+**Cache一致性：**
+上面提到Cache一致性，其实是有协议支持的，现在通用的协议是MESI（最早由Intel开始支持），具体参考：http://en.wikipedia.org/wiki/MESI_protocol，以后会仔细讲解这部分。
+
+**Cache一致性流量的例外情况：**
+其实也不是所有的CAS都会导致总线风暴，这跟Cache一致性协议有关，具体参考：http://blogs.oracle.com/dave/entry/biased_locking_in_hotspot
+
+NUMA(Non Uniform Memory Access Achitecture）架构：
+与SMP对应还有非对称多处理器架构，现在主要应用在一些高端处理器上，主要特点是没有总线，没有公用主存，每个Core有自己的内存，针对这种结构此处不做讨论。
+
+3.2 偏向解除
+
+偏向锁引入的一个重要问题是，在多争用的场景下，如果另外一个线程争用偏向对象，拥有者需要释放偏向锁，而释放的过程会带来一些性能开销，但总体说来偏向锁带来的好处还是大于CAS代价的。
+
+关于锁，JVM中还引入了一些其他技术比如锁膨胀等，这些与自旋锁、偏向锁相比影响不是很大，这里就不做介绍。
+通过上面的介绍可以看出，synchronized的底层实现主要依靠Lock-Free的队列，基本思路是自旋后阻塞，竞争切换后继续竞争锁，稍微牺牲了公平性，但获得了高吞吐量。
+
 ### 5 Java虚拟机对synchronized的优化
 锁的状态总共有四种，无锁状态、偏向锁、轻量级锁和重量级锁。随着锁的竞争，锁可以从偏向锁升级到轻量级锁，再升级的重量级锁，但是锁的升级是单向的，也就是说只能从低到高升级，不会出现锁的降级。
 
@@ -811,6 +926,7 @@ public class StringBufferRemoveSync {
     }
 }
 ```
+
 ### 6 synchronized的几个特点
 #### 6.1 synchronized的可重入性
 从互斥锁的设计上来说，当一个线程试图操作一个由其他线程持有的对象锁的临界资源时，将会处于阻塞状态，但当一个线程再次请求自己持有对象锁的临界资源时，这种情况属于重入锁，请求将会成功，在java中synchronized是基于原子性的内部锁机制，是可重入的，因此在一个线程调用synchronized方法的同时在其方法体内部调用该对象另一个synchronized方法，也就是说一个线程得到一个对象锁后再次请求该对象锁，是允许的，这就是synchronized的可重入性。
@@ -995,17 +1111,6 @@ public class SynchronizedBlocked implements Runnable {
 在`SynchronizedBlocked`构造函数中创建一个新线程并启动获取调用`f()`获取到当前实例锁，由于`SynchronizedBlocked`自身也是线程，启动后在其`run`方法中也调用了`f()`，但由于对象锁被其他线程占用，导致t线程只能等到锁，此时我们调用了`t.interrupt()`;但并不能中断线程。
 
 
-
-
-
-
-
-
-
-
-
-
-
 ---
 
 引用文章：
@@ -1020,6 +1125,18 @@ public class SynchronizedBlocked implements Runnable {
 
 [深入理解Java并发之synchronized实现原理][11]
 
+[synchronized锁分析][13]
+
+[Java SE 1.6对synchronized的优化][14]
+
+[ReenTrantLock可重入锁（和synchronized的区别）总结][15]
+
+[ReentrantLock源码之一lock方法解析(锁的获取)][16]
+
+[jvm对内置锁的优化][17]
+
+[Java中synchronized的实现原理与应用][18]
+
 [1]:https://blog.csdn.net/luoweifu/article/details/46595285
 [2]:https://img-blog.csdn.net/20150623201557825?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQvbHVvd2VpZnU=/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/Center
 [3]:https://blog.csdn.net/luoweifu/article/details/46673975
@@ -1032,6 +1149,12 @@ public class SynchronizedBlocked implements Runnable {
 [10]:https://blog.csdn.net/luoweifu/article/details/46613015
 [11]:https://blog.csdn.net/javazejian/article/details/72828483
 [12]:https://img-blog.csdn.net/20170603172215966?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQvamF2YXplamlhbg==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast
-
-
-[]
+[13]:https://blog.csdn.net/xad707348125/article/details/46956911
+[14]:https://blog.csdn.net/limengliang4007/article/details/77513256
+[15]:https://blog.csdn.net/qq838642798/article/details/65441415
+[16]:http://www.blogjava.net/zhanglongsr/articles/356782.html
+[17]:https://blog.csdn.net/maozhr720/article/details/76518175
+[18]:https://blog.csdn.net/u012465296/article/details/53022317
+[19]:http://static.open-open.com/lib/uploadImg/20121109/20121109112521_220.jpg
+[20]:http://static.open-open.com/lib/uploadImg/20121109/20121109112521_981.jpg
+[21]:http://static.open-open.com/lib/uploadImg/20121109/20121109112521_777.jpg
