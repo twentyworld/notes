@@ -1,7 +1,7 @@
 ## synchronized
 ---
 ### 1. 进程与线程
-感谢[编程思想之多线程与多进程(1)——以操作系统的角度述说线程与进程][1]
+本节感谢[编程思想之多线程与多进程(1)——以操作系统的角度述说线程与进程][1]
 #### 1.1 任务调度
 大部分操作系统(如Windows、Linux)的任务调度是采用时间片轮转的抢占式调度方式，也就是说一个任务执行一小段时间后强制暂停去执行下一个任务，每个任务轮流执行。
 
@@ -880,7 +880,7 @@ Core1和Core2可能会同时把主存中某个位置的值Load到自己的L1 Cac
 而CAS恰好会导致Cache一致性流量，如果有很多线程都共享同一个对象，当某个Core CAS成功时必然会引起总线风暴，这就是所谓的本地延迟，本质上偏向锁就是为了消除CAS，降低Cache一致性流量。
 
 **Cache一致性：**
-上面提到Cache一致性，其实是有协议支持的，现在通用的协议是MESI（最早由Intel开始支持），具体参考：http://en.wikipedia.org/wiki/MESI_protocol，以后会仔细讲解这部分。
+上面提到Cache一致性，其实是有协议支持的，现在通用的协议是MESI（最早由Intel开始支持），具体参考：http://en.wikipedia.org/wiki/MESI_protocol
 
 **Cache一致性流量的例外情况：**
 其实也不是所有的CAS都会导致总线风暴，这跟Cache一致性协议有关，具体参考：http://blogs.oracle.com/dave/entry/biased_locking_in_hotspot
