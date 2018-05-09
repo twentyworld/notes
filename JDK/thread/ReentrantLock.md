@@ -406,6 +406,9 @@ putPoint: 34
 ···
 ```
 
+### 3. Java 同步器 AbstractQueuedSynchronizer
+
+
 ---
 引用文章：
 
@@ -413,7 +416,28 @@ putPoint: 34
 
 [Java并发控制：ReentrantLock Condition使用详解][3]
 
+[深入浅出java同步器AQS][5]
+
+[AbstractQueuedSynchronizer源码剖析（六）- 深刻解析与模拟线程竞争资源][6]
+
+[再谈 AbstractQueuedSynchronizer 2 ：共享模式与基于 Condition 的等待 / 通知机制实现][7]
+
+[AbstractQueuedSynchronizer的介绍和原理分析][8]
+
+[再谈 AbstractQueuedSynchronizer 1 ：独占模式][9]
+
+[AQS(AbstractQueuedSynchronizer)源代码分析][11]
+
+[AbstractQueuedSynchronizer源码解读][10]
 ---
 [1]:https://github.com/twentyworld/learn/tree/master/JDKlearn/src/main/java/com/lock/reentrantLock
 [2]:https://blog.csdn.net/yanyan19880509/article/details/52345422
 [3]:https://www.cnblogs.com/hongdada/p/6150699.html
+[4]:
+[5]:https://www.jianshu.com/p/d8eeb31bee5c
+[6]:https://blog.csdn.net/pfnie/article/details/53191892
+[7]:http://www.importnew.com/26300.html
+[8]:http://ifeve.com/introduce-abstractqueuedsynchronizer/
+[9]:http://www.importnew.com/26284.html
+[10]:https://www.cnblogs.com/micrari/p/6937995.html
+[11]:https://blog.csdn.net/qq_36372507/article/details/79308182
