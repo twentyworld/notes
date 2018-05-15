@@ -38,7 +38,7 @@ CountDownLatch是通过一个计数器来实现的，计数器的初始值为线
 
 ##### 代码：
 you can find the code on the [github][1], get the result as you try:
-```
+```Java
 public class CountDownLatchLearn {
     public static void main(String[] args) {
         CountDownLatch countDownLatch = new CountDownLatch(10);
