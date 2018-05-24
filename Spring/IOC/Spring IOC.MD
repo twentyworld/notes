@@ -1,4 +1,4 @@
-Spring IOC
+# Spring IOC
 ---
  IoC is also known as dependency injection (DI). It is a process whereby objects define their dependencies, that is, the other objects they work with, only through constructor arguments, arguments to a factory method, or properties that are set on the object instance after it is constructed or returned from a factory method. The container then injects those dependencies when it creates the bean. This process is fundamentally the inverse, hence the name Inversion of Control (IoC), of the bean itself controlling the instantiation or location of its dependencies by using direct construction of classes, or a mechanism such as the Service Locator pattern.
 
@@ -16,7 +16,7 @@ IoC 容器：最主要是完成了完成对象的创建和依赖的管理注入�
 
 在BeanFactory里只对IOC容器的基本行为作了定义，根本不关心你的bean是如何定义怎样加载的。正如我们只关心工厂里得到什么的产品对象，至于工厂是怎么生产这些对象的，这个基本的接口不关心。
 
-```
+```Java
 public interface BeanFactory {
 
 	Object getBean(String name) throws BeansException;
@@ -56,7 +56,7 @@ ApplicationContext允许上下文嵌套，通过保持父上下文可以维持�
 
 XmlBeanFactory源码。
 
-```
+```Java
 public class XmlBeanFactory extends DefaultListableBeanFactory {
 	private final XmlBeanDefinitionReader reader = new XmlBeanDefinitionReader(this);
 
@@ -72,11 +72,11 @@ public class XmlBeanFactory extends DefaultListableBeanFactory {
 
 ### 3.2 FileSystemXmlApplicationContext(xmlPath)的IOC容器流程。
 我们调用FileSystemXmlApplicationContext：
-```
+```Java
 ApplicationContext =new FileSystemXmlApplicationContext(xmlPath);
 ```
 我们调用FileSystemXmlApplicationContext的构造方法。
-```
+```Java
 public class FileSystemXmlApplicationContext extends AbstractXmlApplicationContext {
 	public FileSystemXmlApplicationContext() {
 	}
@@ -116,6 +116,11 @@ public class FileSystemXmlApplicationContext extends AbstractXmlApplicationConte
 	}
 }
 ```
+他们都在最后通过调用到了：
+```Java
+FileSystemXmlApplicationContext(String[] configLocations, boolean refresh, @Nullable ApplicationContext parent)
+```
+在对象的初始化过程中，调用refresh函数载入`beandefinition`，
 通过分析FileSystemXmlApplicationContext的源代码可以知道，在创建FileSystemXmlApplicationContext容器时，构造方法做以下两项重要工作：
 
 - 调用父类容器的构造方法(super(parent)方法)为容器设置好Bean资源加载器。
@@ -123,7 +128,7 @@ public class FileSystemXmlApplicationContext extends AbstractXmlApplicationConte
 
 #### 3.2.1 为容器设置Bean资源加载器
 通过追踪FileSystemXmlApplicationContext的继承体系，发现AbstractApplicationContext中初始化IoC容器所做的主要源码如下：
-```
+```Java
 public abstract class AbstractApplicationContext extends DefaultResourceLoader
 		implements ConfigurableApplicationContext {
     //静态初始化块，在整个容器创建过程中只执行一次  
@@ -160,7 +165,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 
 #### 3.2.2 设置Bean定义资源文件的定位路径
 在设置容器的资源加载器之后，接下来FileSystemXmlApplicationContet执行setConfigLocations方法通过调用其父类AbstractRefreshableConfigApplicationContext的方法进行对Bean定义资源文件的定位，该方法的源码如下：
-```
+```Java
 public void setConfigLocations(@Nullable String... locations) {
   if (locations != null) {
     Assert.noNullElements(locations, "Config locations must not be null");
@@ -196,7 +201,7 @@ public void setConfigLocations(@Nullable String... locations) {
 早前放的图可知，这里面的继承顺序：
 AbstractApplicationContext<-AbstractRefreshableApplicationContext<-AbstractRefreshableConfigApplicationContext
   <-AbstractXmlApplicationContext<-FileSystemXmlApplicationContext
-```
+```Java
 public void refresh() throws BeansException, IllegalStateException {
   synchronized (this.startupShutdownMonitor) {
     // Prepare this context for refreshing.
@@ -269,7 +274,7 @@ refresh()方法主要为IoC容器Bean的生命周期管理提供条件，Spring 
 
 ###### 3.2.3.1 obtainFreshBeanFactory()方法 刷新容器
 **AbstractApplicationContext** 中实现。
-```
+```Java
 //Tell the subclass to refresh the internal bean factory.
 protected ConfigurableListableBeanFactory obtainFreshBeanFactory() {
   //这里使用了委派设计模式，父类定义了抽象的refreshBeanFactory()方法，具体实现调用子类容器的refreshBeanFactory()方法
@@ -284,7 +289,7 @@ protected ConfigurableListableBeanFactory obtainFreshBeanFactory() {
 
 在 **AbstractRefreshableApplicationContext** 中有refreshBeanFactory().
 其中有关闭原来的容器，重建容器。
-```
+```Java
 /**
  * This implementation performs an actual refresh of this context's underlying
  * bean factory, shutting down the previous bean factory (if any) and
@@ -332,7 +337,7 @@ protected void customizeBeanFactory(DefaultListableBeanFactory beanFactory) {
 }
 ```
 在AbstractXmlApplicationContext中调用loadBeanDefinitions()。加载bean。
-```
+```Java
 //Loads the bean definitions via an XmlBeanDefinitionReader.
 @Override
 protected void loadBeanDefinitions(DefaultListableBeanFactory beanFactory) throws BeansException, IOException {
@@ -388,7 +393,7 @@ loadBeanDefinitions(String... locations) -> loadBeanDefinitions(String location)
   loadBeanDefinitions(String location, @Nullable Set<Resource> actualResources) -> loadBeanDefinitions(resources)
    -> loadBeanDefinitions(resource) -> loadBeanDefinitions(new EncodedResource(resource)) -> doLoadBeanDefinitions(inputSource, encodedResource.getResource())的路径，找到了文件的路径。
 
-```
+```Java
 public abstract class AbstractBeanDefinitionReader implements EnvironmentCapable, BeanDefinitionReader {
 
   public int loadBeanDefinitions(String... locations) throws BeanDefinitionStoreException {
@@ -451,7 +456,8 @@ public abstract class AbstractBeanDefinitionReader implements EnvironmentCapable
 
 这里做了两件事情，第一解析xml文件，同时把bean注册到容器中。
  XmlBeanDefinitionReader类中的doLoadBeanDefinitions方法是从特定XML文件中实际载入Bean定义资源的方法，该方法在载入Bean定义资源之后将其转换为Document对象，接下来调用registerBeanDefinitions启动Spring IoC容器对Bean定义的解析过程.
-```
+
+```Java
 public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader {
     protected int doLoadBeanDefinitions(InputSource inputSource, Resource resource)
         throws BeanDefinitionStoreException {
@@ -473,8 +479,7 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader {
 ##### 3.2.4.3 DocumentLoader解析xml文件。
 这阶段，是由DocumentLoader的实现类DefaultDocumentLoader具体实现。
 
-```
-
+``` Java
 public class DefaultDocumentLoader implements DocumentLoader {
   //使用标准的JAXP将载入的Bean定义资源转换成document对象  
 	public Document loadDocument(InputSource inputSource, EntityResolver entityResolver,
@@ -520,7 +525,7 @@ public class DefaultDocumentLoader implements DocumentLoader {
 
 ##### 3.2.4.4 XmlBeanDefinitionReader解析载入的Bean定义资源文件
 
-```
+```Java
 public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader {
     public int registerBeanDefinitions(Document doc, Resource resource) throws BeanDefinitionStoreException {
       BeanDefinitionDocumentReader documentReader = createBeanDefinitionDocumentReader();
@@ -535,7 +540,7 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader {
 }
 ```
 类XmlBeanDefinitionReader中的registerBeanDefinitions方法调用了DefaultBeanDefinitionDocumentReader中的方法 doRegisterBeanDefinitions(Element root) 对documnet对象进行解析：
-```
+```Java
 public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocumentReader {
 
 
@@ -722,7 +727,7 @@ public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocume
 
 ##### 3.2.4.5 BeanDefinitionParserDelegate解析Bean定义资源文件中的<Bean>元素
 
-```
+```Java
 /**
  * Parses the supplied {@code <bean>} element. May return {@code null}
  * if there were errors during parse. Errors are reported to the
@@ -856,7 +861,7 @@ public AbstractBeanDefinition parseBeanDefinitionElement(
 
 
 #### 3.2.5 DefaultListableBeanFactory向IoC容器注册解析后的BeanDefinition
-```
+```Java
 public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocumentReader {
     protected void processBeanDefinition(Element ele, BeanDefinitionParserDelegate delegate) {
       BeanDefinitionHolder bdHolder = delegate.parseBeanDefinitionElement(ele);
@@ -877,7 +882,7 @@ public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocume
 }
 ```
 在这里 DefaultBeanDefinitionDocumentReader调用了BeanDefinitionReaderUtils.registerBeanDefinition
-```
+```Java
 public static void registerBeanDefinition(
     BeanDefinitionHolder definitionHolder, BeanDefinitionRegistry registry)
     throws BeanDefinitionStoreException {
@@ -899,7 +904,7 @@ public static void registerBeanDefinition(
 
 ##### 3.2.5.1 DefaultListableBeanFactory向IoC容器注册解析后的BeanDefinition：
 DefaultListableBeanFactory中使用一个HashMap的集合对象存放IoC容器中注册解析的BeanDefinition，向IoC容器注册的主要源码如下：
-```
+```Java
 public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFactory
 		implements ConfigurableListableBeanFactory, BeanDefinitionRegistry, Serializable {
       /** Map of bean definition objects, keyed by bean name */
