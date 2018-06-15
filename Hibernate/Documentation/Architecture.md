@@ -30,7 +30,7 @@ A single-threaded, short-lived object used by the application to demarcate indiv
 ### 2.1 Mapping types
  Hibernate understands both the Java and JDBC representations of application data. The ability to read/write this data from/to the database is the function of a Hibernate type.
 
-```
+```Java
 create table Contact (
     id integer not null,
     first varchar(255),
@@ -105,7 +105,7 @@ For basic type attributes, the implicit naming rule is that the column name is t
 
 #### 2.3.5. Explicit BasicTypes
 Sometimes you want a particular attribute to be handled differently. Occasionally Hibernate will implicitly pick a BasicType that you do not want (and for some reason you do not want to adjust the BasicTypeRegistry).
-```
+```Java
 @Entity(name = "Product")
 public class Product {
 
@@ -124,7 +124,7 @@ public class Product {
 #### 2.3.7. Mapping enums
 Hibernate supports the mapping of Java enums as basic value types in a number of different ways.
 ###### @Enumerated
-```
+```Java
 @Entity(name = "Phone")
 public static class Phone {
 
@@ -146,7 +146,7 @@ public static class Phone {
 
 #### 2.3.8 Mapping LOBs
 Mapping LOBs (database Large Objects) come in 2 forms, those using the JDBC locator types and those materializing the LOB data.
-```
+```Java
 CREATE TABLE Product (
   id INTEGER NOT NULL
   image clob
@@ -166,7 +166,7 @@ public static class Product {
 ```
 
 #### 2.3.15. Mapping Date/Time Values
-```
+```Java
 @Entity(name = "DateEvent")
 public static class DateEvent {
 
@@ -191,7 +191,7 @@ When updating the entity, Hibernate is going to modify the column with the curre
 
 #### 2.3.20. @Formula
 Sometimes, you want the Database to do some computation for you rather than in the JVM, you might also create some kind of virtual column.
-```
+```Java
 @Entity(name = "Account")
 public static class Account {
 
@@ -211,7 +211,7 @@ public static class Account {
 ```
 #### 2.3.21. @Where
 Sometimes, you want to filter out entities or collections using a custom SQL criteria. This can be achieved using the @Where annotation, which can be applied to entities and collections.
-```
+```Java
 public enum AccountType {
     DEBIT,
     CREDIT
@@ -268,7 +268,7 @@ The @Filter annotation is another way to filter out entities or collections usin
 
 
 ### 2.4 Embeddable types
-```
+```Java
 @Entity(name = "Book")
 public static class Book {
     @Id

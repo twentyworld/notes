@@ -7,7 +7,7 @@ CyclicBarrier 的字面意思是可循环使用（Cyclic）的屏障（Barrier�
 CyclicBarrier默认的构造方法是CyclicBarrier(int parties)，其参数表示屏障拦截的线程数量，每个线程调用await方法告诉CyclicBarrier我已经到达了屏障，然后当前线程被阻塞。CyclicBarrier还提供一个更高级的构造函数CyclicBarrier(int parties, Runnable barrierAction)，用于在线程到达屏障时，优先执行barrierAction这个Runnable对象，方便处理更复杂的业务场景。线程进入屏障通过CyclicBarrier的await()方法。
 
 ##### await()
-```
+```Java
 public int await() throws InterruptedException, BrokenBarrierException {};
 public int await(long timeout, TimeUnit unit)throws InterruptedException,BrokenBarrierException,TimeoutException {};
 ```
@@ -18,7 +18,7 @@ await(long timeout, TimeUnit unit)是让这些线程等待至一定的时间，�
 
 ##### 代码实例：
 you can find the code on the [github][1], get the result as you try:
-```
+```Java
 public class CyclicBarrierLearn {
     public static void main(String[] args) throws InterruptedException {
 //      CyclicBarrier cyclicBarrier = new CyclicBarrier(100);

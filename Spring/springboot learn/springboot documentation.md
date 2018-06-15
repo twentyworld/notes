@@ -32,7 +32,7 @@ Using a root package also allows the @ComponentScan annotation to be used withou
 @ComponentScan:a All application components (@Component, @Service, @Repository, @Controller etc.)
  will be automatically registered as Spring Beans.
 
-```
+```Java
 @Service
 public class DatabaseAccountService implements AccountService {
     private final RiskAssessor riskAssessor;
@@ -44,7 +44,7 @@ public class DatabaseAccountService implements AccountService {
 ```
 And if a bean has one constructor, you can omit the @Autowired.
 
-```
+```Java
 @Service
 public class DatabaseAccountService implements AccountService {
     private final RiskAssessor riskAssessor;
@@ -93,7 +93,7 @@ The algorithm used to determine a ‘web environment’ is fairly simplistic
 ##### Accessing application arguments
 If you need to access the application arguments that were passed to SpringApplication.run(…​) you can inject a org.springframework.boot.ApplicationArguments bean.
 The ApplicationArguments interface provides access to both the raw String[] arguments as well as parsed option and non-option arguments:
-```
+```Java
 @Component
 public class MyBean {
     @Autowired

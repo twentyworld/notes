@@ -19,7 +19,7 @@ JDK 默认提供了以下几个ClassLoader：
   另外我们知道ClassLoader中有个getSystemClassLoader方法,此方法返回的正是AppclassLoader.AppClassLoader主要负责加载classpath所指定的位置的类或者是jar文档，它也是Java程序默认的类加载器。
 
 看sun.misc.Launcher,它是一个java虚拟机的入口应用。
-```
+```Java
 public class Launcher {
 private static URLStreamHandlerFactory factory = new Launcher.Factory();
     private static Launcher launcher = new Launcher();
@@ -52,7 +52,7 @@ private static URLStreamHandlerFactory factory = new Launcher.Factory();
 - Launcher初始化了ExtClassLoader和AppClassLoader。
 - Launcher中并没有看见BootstrapClassLoader，但通过System.getProperty("sun.boot.class.path")得到了字符串bootClassPath,这个应该就是BootstrapClassLoader加载的jar包路径。
 
-```
+```shell
 System.out.println(System.getProperty("sun.boot.class.path"));
 
 C:\Program Files\Java\jre1.8.0_91\lib\resources.jar;
@@ -66,13 +66,13 @@ C:\Program Files\Java\jre1.8.0_91\classes
 ```
 
 我们先前的内容有说过，可以指定-D java.ext.dirs参数来添加和改变ExtClassLoader的加载路径。这里我们通过可以编写测试代码。
-```
+```Java
 System.out.println(System.getProperty("java.ext.dirs"));
 
 C:\Program Files\Java\jre1.8.0_91\lib\ext;C:\Windows\Sun\Java\lib\ext
 ```
 可以看到AppClassLoader加载的就是java.class.path下的路径。我们同样打印它的值。
-```
+```Java
 System.out.println(System.getProperty("java.class.path"));
 
 D:\workspace\ClassLoaderDemo\bin
@@ -103,7 +103,7 @@ D:\workspace\ClassLoaderDemo\bin
 
 ##### loadClass()
 JDK文档中是这样写的，通过指定的全限定类名加载class，它通过同名的loadClass(String,boolean)方法。
-```
+```Java
 protected Class<?> loadClass(String name,
                              boolean resolve)
                       throws ClassNotFoundException
@@ -115,7 +115,7 @@ protected Class<?> loadClass(String name,
 
 如果class在上面的步骤中找到了，参数resolve又是true的话，那么loadClass()又会调用resolveClass(Class)这个方法来生成最终的Class对象。 我们可以从源代码看出这个步骤。
 
-```
+```Java
 protected Class<?> loadClass(String name, boolean resolve)
         throws ClassNotFoundException
     {
@@ -171,7 +171,7 @@ protected Class<?> loadClass(String name, boolean resolve)
 > 一个ClassLoader创建时如果没有指定parent，那么它的parent默认就是AppClassLoader。
 上面说的是，如果自定义一个ClassLoader，默认的parent父加载器是AppClassLoader，因为这样就能够保证它能访问系统内置加载器加载成功的class文件。
 
-```
+```Java
 public class DiskClassLoader extends ClassLoader {
 
     private String mLibPath;
@@ -187,7 +187,7 @@ public class DiskClassLoader extends ClassLoader {
 
         String fileName = getFileName(name);
 
-        File file = new File(mLibPath,fileName);
+        File file = new File(mLibPath, fileName);
 
         try {
             FileInputStream is = new FileInputStream(file);
@@ -206,7 +206,7 @@ public class DiskClassLoader extends ClassLoader {
             is.close();
             bos.close();
 
-            return defineClass(name,data,0,data.length);
+            return defineClass(name, data, 0, data.length);
 
         } catch (IOException e) {
             // TODO Auto-generated catch block
@@ -220,18 +220,18 @@ public class DiskClassLoader extends ClassLoader {
     private String getFileName(String name) {
         // TODO Auto-generated method stub
         int index = name.lastIndexOf('.');
-        if(index == -1){
-            return name+".class";
-        }else{
-            return name.substring(index+1)+".class";
+        if (index == -1) {
+            return name + ".class";
+        } else {
+            return name.substring(index + 1) + ".class";
         }
     }
 
 }
 ```
 测试：
-···
 
+```Java
 public class ClassLoaderTest {
 
     public static void main(String[] args) {
@@ -266,7 +266,8 @@ public class ClassLoaderTest {
     }
 
 }
-···
+```
+
 diskLoader.loadClass("com.frank.test.Test")中会最终调用到DiskClassLoader的findClass(String name);
 所以，我们要做得就是复写findClass。
 
