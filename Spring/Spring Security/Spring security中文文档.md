@@ -741,19 +741,19 @@ public class AnonymousAuthenticationFilter extends GenericFilterBean implements
 ```Java
 @Override
 protected void configure(HttpSecurity http) throws Exception {
-		http
-						.authorizeRequests()
-						.antMatchers("/resources/**", "/signup", "/about").permitAll()
-						.antMatchers("/admin/**").hasRole("ADMIN")
-						.antMatchers("/db/**").access("hasRole('ADMIN') and hasRole('DBA')")
-						.anyRequest().authenticated()
-						.withObjectPostProcessor(new ObjectPostProcessor<FilterSecurityInterceptor>() {
-								public <O extends FilterSecurityInterceptor> O postProcess(
-												O fsi) {
-										fsi.setPublishAuthorizationSuccess(true);
-										return fsi;
-								}
-						});
+  http
+    .authorizeRequests()
+    .antMatchers("/resources/**", "/signup", "/about").permitAll()
+    .antMatchers("/admin/**").hasRole("ADMIN")
+    .antMatchers("/db/**").access("hasRole('ADMIN') and hasRole('DBA')")
+    .anyRequest().authenticated()
+    .withObjectPostProcessor(new ObjectPostProcessor<FilterSecurityInterceptor>() {
+    		public <O extends FilterSecurityInterceptor> O postProcess(
+    						O fsi) {
+    				fsi.setPublishAuthorizationSuccess(true);
+    				return fsi;
+    		}
+    });
 }
 
 ```
