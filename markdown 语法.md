@@ -65,3 +65,9 @@ Pipe     | $1
 <font color=gray size=5>gray</font>
 
 快捷键 `Ctrl + D` 来收藏本页
+
+
+
+
+- [ ] 不勾选
+- [x] 勾选
