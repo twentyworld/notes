@@ -3,7 +3,7 @@ Jackson是用于处理的JSON的类库。
 
 ---
 ### 一 开始之前
-Java处理JSON数据有三个比较流行的类库FastJSON、Gson和Jackson。
+Java处理JSON数据有三个比较流行的类库`FastJSON`、`Gson`和`Jackson`。
 
 - Jackson
 
@@ -65,14 +65,14 @@ public class House {
 注解的方法：**fieldVisibility** 字段的可见级别。
 
 ##### jackson默认的字段属性发现规则
-- 所有被public修饰的字段
-- 所有被public修饰的getter
-- 所有被public修饰的setter
+- 所有被`public`修饰的字段
+- 所有被`public`修饰的`getter`
+- 所有被`public`修饰的`setter`
 
-如果我们只有一个private的name属性，并且没有提供对应的get,set方法，如果按照默认的属性发现规则我们将无法序列化和反序列化name字段(如果没有get,set方法，只有被public修饰的属性才会被发现)。
+如果我们只有一个`private`的`name`属性，并且没有提供对应的`get,set`方法，如果按照默认的属性发现规则我们将无法序列化和反序列化`name`字段(如果没有`get,set`方法，只有被`public`修饰的属性才会被发现)。
 
 示例：
-我们修改一下House：
+我们修改一下`House`类：
 ```Java
 public class House {
     public int price;
@@ -114,7 +114,7 @@ OutPut:
 {"name":"zed","age":24,"houses":[{"price":300},{"price":400}]}
 
 ```
-可以通过修改@JsonAutoDetect的fieldVisibility来调整自动发现级别，为了使name被自动发现，我们需要将级别调整为ANY。
+可以通过修改`@JsonAutoDetect`的`fieldVisibility`来调整自动发现级别，为了使`name`被自动发现，我们需要将级别调整为`ANY`。
 
 给`House`类添加注解`@JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY)`：
 OutPut:
@@ -141,7 +141,7 @@ public static ObjectMapper getObjectMapper() {
 #### 2. @JsonIgnore
 
 示例：
-我们修改一下House：
+我们修改一下`House`类·：
 ```Java
 public class House {
     public int price;
@@ -188,7 +188,7 @@ OutPut:
 {"name":"zed","age":24,"houses":[{"price":300},{"price":400}]}
 
 ```
-当@JsonIgnore不管注解在getters上还是setters上都会忽略对应的属性。
+当`@JsonIgnore`不管注解在`getters`上还是`setters`上都会忽略对应的属性。
 
 
 
@@ -197,7 +197,7 @@ OutPut:
 #### 3. @JsonProperty
 作用在字段或方法上，用来对属性的序列化/反序列化，可以用来避免遗漏属性，同时提供对属性名称重命名.
 示例：
-我们修改一下House：
+我们修改一下`House`类：
 ```Java
 public class House {
     public int price;
@@ -242,7 +242,7 @@ OutPut:
 
 
 #### 4. @JsonIgnoreProperties
-作用在类上，用来说明有些属性在序列化/反序列化时需要忽略掉，可以将它看做是@JsonIgnore的批量操作，但它的功能比@JsonIgnore要强，比如一个类是代理类，我们无法将将@JsonIgnore标记在属性或方法上，此时便可用@JsonIgnoreProperties标注在类声明上，它还有一个重要的功能是作用在反序列化时解析字段时过滤一些未知的属性，否则通常情况下解析到我们定义的类不认识的属性便会抛出异常。
+作用在类上，用来说明有些属性在序列化/反序列化时需要忽略掉，可以将它看做是`@JsonIgnore`的批量操作，但它的功能比`@JsonIgnore`要强，比如一个类是代理类，我们无法将将`@JsonIgnore`标记在属性或方法上，此时便可用`@JsonIgnoreProperties`标注在类声明上，它还有一个重要的功能是作用在反序列化时解析字段时过滤一些未知的属性，否则通常情况下解析到我们定义的类不认识的属性便会抛出异常。
 
 示例：
 我们修改一下House：
@@ -294,7 +294,7 @@ OutPut:
 
 
 #### 5. @JsonUnwrapped
-作用在属性字段或方法上，用来将子JSON对象的属性添加到封闭的JSON对象。
+作用在属性字段或方法上，用来将子`JSON`对象的属性添加到封闭的`JSON`对象。
 
 说起来比较难懂，看个例子就很清楚了：
 
@@ -345,25 +345,48 @@ OutPut:
 {"name":"zed","age":24,"houses":{"price":400,"destination":"shanghai"}}
 ```
 
-我们给`House`加上`@JsonUnwrapped`属性：
+我们给`House`属性加上`@JsonUnwrapped`注解：
+```Java
+public class Person {
+    private String name;
+    private int age;
+    @JsonUnwrapped
+    private House houses;
+
+    public Person(String name, int age, House houses) {
+        this.name = name;
+        this.age = age;
+        this.houses = houses;
+    }
+
+    public House getHouses() { return houses; }
+    public void setHouses(House houses) { this.houses = houses; }
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+    public int getAge() { return age; }
+    public void setAge(int age) { this.age = age; }
+}
+
+```
+
 OutPut:
 ```Java
 {"name":"zed","age":24,"price":400,"destination":"shanghai"}
 ```
-在2.0+版本中@JsonUnwrapped添加了prefix和suffix属性，用来对字段添加前后缀，这在有关属性分组上比较有用。
+在2.0+版本中`@JsonUnwrapped`添加了`prefix`和`suffix`属性，用来对字段添加前后缀，这在有关属性分组上比较有用。
 
 
 ---
 
 #### 6. @JsonIdentityInfo
-2.0+版本新注解，作用于类或属性上，被用来在序列化/反序列化时为该对象或字段添加一个对象识别码，通常是用来解决循环嵌套的问题，比如数据库中的多对多关系，通过配置属性generator来确定识别码生成的方式，有简单的，配置属性property来确定识别码的名称，识别码名称没有限制。
+2.0+版本新注解，作用于类或属性上，被用来在序列化/反序列化时为该对象或字段添加一个对象识别码，通常是用来解决循环嵌套的问题，比如数据库中的多对多关系，通过配置属性`generator`来确定识别码生成的方式，有简单的，配置属性`property`来确定识别码的名称，识别码名称没有限制。
 
-- 对象识别码可以是虚拟的，即存在在JSON中，但不是POJO的一部分，这种情况下我们可以如此使用注解：
+- 对象识别码可以是虚拟的，即存在在`JSON`中，但不是`POJO`的一部分，这种情况下我们可以如此使用注解：
   ```Java
   @JsonIdentityInfo(generator =
     ObjectIdGenerators.IntSequenceGenerator.class,property = "@id")
   ```
-- 对象识别码也可以是真实存在的，即以对象的属性为识别码，通常这种情况下我们一般以id属性为识别码，可以这么使用注解：
+- 对象识别码也可以是真实存在的，即以对象的属性为识别码，通常这种情况下我们一般以`id`属性为识别码，可以这么使用注解：
   ```Java
   @JsonIdentityInfo(generator =
     ObjectIdGenerators.PropertyGenerator.class,property = "id")
@@ -404,9 +427,9 @@ public static class Child{
 ---
 
 #### 7. @JsonNaming
-jackson 2.1+版本的注解，作用于类或方法，注意这个注解是在jackson-databind包中而不是在jackson-annotations包里，它可以让你定制属性命名策略，作用和前面提到的@JsonProperty的重命名属性名称相同。
+jackson 2.1+版本的注解，作用于类或方法，注意这个注解是在`jackson-databind`包中而不是在`jackson-annotations`包里，它可以让你定制属性命名策略，作用和前面提到的`@JsonProperty`的重命名属性名称相同。
 
-可以用@JsonProperty，可是如果POJO里有很多属性，给每个属性都要加上@JsonProperty是多么繁重的工作，这里就需要用到@JsonNaming了，它不仅能制定统一的命名规则，还能任意按自己想要的方式定制。
+可以用`@JsonProperty`，可是如果`POJO`里有很多属性，给每个属性都要加上`@JsonProperty`是多么繁重的工作，这里就需要用到`@JsonNaming`了，它不仅能制定统一的命名规则，还能任意按自己想要的方式定制。
 ```Java
 @JsonNaming(PropertyNamingStrategy.LowerCaseWithUnderscoresStrategy.class)
 public class TestPOJO {
@@ -434,7 +457,7 @@ public static ObjectMapper getObjectMapper() {
 ```
 ---
 ### 多态类型处理
-jackson允许配置多态类型处理，当进行反序列话时，JSON数据匹配的对象可能有多个子类型，为了正确的读取对象的类型，我们需要添加一些类型信息。可以通过下面几个注解来实现。
+jackson允许配置多态类型处理，当进行反序列话时，`JSON`数据匹配的对象可能有多个子类型，为了正确的读取对象的类型，我们需要添加一些类型信息。可以通过下面几个注解来实现。
 
 ---
 #### 1. @JsonTypeInfo
@@ -474,7 +497,7 @@ jackson允许配置多态类型处理，当进行反序列话时，JSON数据匹
 #### 2. @JsonSubTypes
 作用于类/接口，用来列出给定类的子类，只有当子类类型无法被检测到时才会使用它。
 
-一般是配合@JsonTypeInfo在基类上使用。
+一般是配合`@JsonTypeInfo`在基类上使用。
 ```Java
 @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS)
 @JsonSubTypes({
@@ -491,7 +514,7 @@ jackson允许配置多态类型处理，当进行反序列话时，JSON数据匹
 ### 用于序列化和反序列化的注解类。
 
 #### 1. @JsonSerialize/@JsonDeserialize
-作用于方法和字段上，通过 using(JsonSerializer)和using(JsonDeserializer)来指定序列化和反序列化的实现.
+作用于方法和字段上，通过 `using(JsonSerializer)`和`using(JsonDeserializer)`来指定序列化和反序列化的实现.
 
 ###### 1.序列化和反序列化转换
 通常我们在需要自定义序列化和反序列化时会用到，比如下面的例子中的日期转换.
@@ -535,10 +558,10 @@ class MyDateDeserializer extends JsonDeserializer<Date> {
 }
 ```
 
-上面的例子中自定义了日期的序列化和反序列化方式，可以将Date和指定日期格式字符串之间相互转换。
+上面的例子中自定义了日期的序列化和反序列化方式，可以将`Date`和指定日期格式字符串之间相互转换。
 
 ###### 2. 实现多态类型转换
-也可以通过使用as(JsonSerializer)和as(JsonDeserializer)来实现多态类型转换，上面我们有提到多态类型处理时可以使用@JsonTypeInfo实现，还有一种比较简便的方式就是使用@JsonSerialize和@JsonDeserialize指定as的子类类型，注意这里必须指定为子类类型才可以实现替换运行时的类型。
+也可以通过使用`as(JsonSerializer)`和`as(JsonDeserializer)`来实现多态类型转换，上面我们有提到多态类型处理时可以使用`@JsonTypeInfo`实现，还有一种比较简便的方式就是使用`@JsonSerialize`和`@JsonDeserialize`指定`as`的子类类型，注意这里必须指定为子类类型才可以实现替换运行时的类型。
 ```Java
     public static class Person {
         private String name;
@@ -601,7 +624,7 @@ objectMapper.configure(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY,true);
 视图模板，作用于方法和属性上，用来指定哪些属性可以被包含在`JSON`视图中，在前面我们知道已经有`@JsonIgnore`和`@JsonIgnoreProperties`可以排除过滤掉不需要序列化的属性，可是如果一个`POJO`中有上百个属性，比如订单类、商品详情类这种属性超多，而我们可能只需要概要简单信息即序列化时只想输出其中几个或10几个属性，此时使用`@JsonIgnore`和`@JsonIgnoreProperties`就显得非常繁琐，而使用`@JsonView`便会非常方便，只许在你想要输出的属性(或对应的`getter`)上添加`@JsonView`即可，
 
 #### 4. @JsonAnySetter
-作用于方法，在反序列化时用来处理遇到未知的属性的时候调用，在本文前面我们知道可以通过注解@JsonIgnoreProperties(ignoreUnknown=true)来过滤未知的属性，但是如果需要这些未知的属性该如何是好?那么@JsonAnySetter就可以派上用场了，它通常会和map属性配合使用用来保存未知的属性。
+作用于方法，在反序列化时用来处理遇到未知的属性的时候调用，在本文前面我们知道可以通过注解`@JsonIgnoreProperties(ignoreUnknown=true)`来过滤未知的属性，但是如果需要这些未知的属性该如何是好?那么`@JsonAnySetter`就可以派上用场了，它通常会和`map`属性配合使用用来保存未知的属性。
 ```Java
 public static class Person{
     private String name;
@@ -615,7 +638,7 @@ public static class Person{
 ```
 
 #### 5. @JsonCreator
-作用于方法，通常用来标注构造方法或静态工厂方法上，使用该方法来构建实例，默认的是使用无参的构造方法，通常是和@JsonProperty或@JacksonInject配合使用。
+作用于方法，通常用来标注构造方法或静态工厂方法上，使用该方法来构建实例，默认的是使用无参的构造方法，通常是和`@JsonProperty`或`@JacksonInject`配合使用。
  ```Java
  public static class TestPOJO{
      private String name;
@@ -637,7 +660,7 @@ public static class Person{
  ```
 > 上面是在构造方法上标注了@JsonCreator，同样也可以标注在静态工厂方法上.
 
-还有一种构造方式成为授权式构造器，也是我们平常比较常用到的，这个构造器只有一个参数，且不能使用@JsonProperty。
+还有一种构造方式成为授权式构造器，也是我们平常比较常用到的，这个构造器只有一个参数，且不能使用`@JsonProperty`。
 ```Java
 public static class TestPOJO{
     private String name;
@@ -759,7 +782,7 @@ public static ObjectMapper getObjectMapper() {
 ```
 
 ###### SerializationFeature.WRAP_ROOT_VALUE
-是否环绕根元素，默认false，如果为true，则默认以类名作为根元素，你也可以通过@JsonRootName来自定义根元素名称
+是否环绕根元素，默认`false`，如果为`true`，则默认以类名作为根元素，你也可以通过`@JsonRootName`来自定义根元素名称
 ```Java
 public static ObjectMapper getObjectMapper() {
     ObjectMapper mapper = new ObjectMapper();
@@ -773,7 +796,7 @@ OutPut:
 {"Person":{"name":"zed","age":24,"houses":[{"price":300,"address":"beijing"},{"price":400,"address":"shanghai"}]}}
 ```
 ###### SerializationFeature.INDENT_OUTPUT
-是否缩放排列输出，默认false，有些场合为了便于排版阅读则需要对输出做缩放排列
+是否缩放排列输出，默认`false`，有些场合为了便于排版阅读则需要对输出做缩放排列
 ```Java
 public static ObjectMapper getObjectMapper() {
     ObjectMapper mapper = new ObjectMapper();
@@ -799,18 +822,17 @@ OutPut:
 
 
 ###### SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS
-序列化Map时对key进行排序操作，默认false.
+序列化Map时对key进行排序操作，默认`false`.
 
 
 
 
 ###### SerializationFeature.WRITE_CHAR_ARRAYS_AS_JSON_ARRAYS
-序列化char[]时以json数组输出，默认false
-。。
+序列化`char[]`时以`json`数组输出，默认`false`。
 
-需要注意的是对于第二种通过配置SerializationConfig和DeserializationConfig方式只能启动/禁止自动检测，无法修改我们所需的可见级别。
+需要注意的是对于第二种通过配置`SerializationConfig`和`DeserializationConfig`方式只能启动/禁止自动检测，无法修改我们所需的可见级别。
 
-有时候对每个实例进行可见级别的注解可能会非常麻烦，这时候我们需要配置一个全局的可见级别，通过objectMapper.setVisibilityChecker()来实现，默认的VisibilityChecker实现类为VisibilityChecker.Std，这样可以满足实现复杂场景下的基础配置。
+有时候对每个实例进行可见级别的注解可能会非常麻烦，这时候我们需要配置一个全局的可见级别，通过`objectMapper.setVisibilityChecker()`来实现，默认的`VisibilityChecker`实现类为`VisibilityChecker.Std`，这样可以满足实现复杂场景下的基础配置。
 ```Java
 public static ObjectMapper getObjectMapper() {
     ObjectMapper mapper = new ObjectMapper();
@@ -847,7 +869,7 @@ root.with("other").put("type", "student");
 String json = mapper.writeValueAsString(root);
 
 ```
-如果 json 类型太过动态，不适合反序列化成对象的时候，树模型比数据绑定更合适。
+如果`json`类型太过动态，不适合反序列化成对象的时候，树模型比数据绑定更合适。
 ---
 
 感谢：
