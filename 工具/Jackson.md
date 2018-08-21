@@ -781,7 +781,7 @@ public static ObjectMapper getObjectMapper() {
 }
 ```
 
-###### SerializationFeature.WRAP_ROOT_VALUE
+#### SerializationFeature.WRAP_ROOT_VALUE
 是否环绕根元素，默认`false`，如果为`true`，则默认以类名作为根元素，你也可以通过`@JsonRootName`来自定义根元素名称
 ```Java
 public static ObjectMapper getObjectMapper() {
@@ -795,7 +795,7 @@ OutPut:
 // 有Person 有houses。
 {"Person":{"name":"zed","age":24,"houses":[{"price":300,"address":"beijing"},{"price":400,"address":"shanghai"}]}}
 ```
-###### SerializationFeature.INDENT_OUTPUT
+#### SerializationFeature.INDENT_OUTPUT
 是否缩放排列输出，默认`false`，有些场合为了便于排版阅读则需要对输出做缩放排列
 ```Java
 public static ObjectMapper getObjectMapper() {
@@ -821,13 +821,13 @@ OutPut:
 ```
 
 
-###### SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS
+#### SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS
 序列化Map时对key进行排序操作，默认`false`.
 
 
 
 
-###### SerializationFeature.WRITE_CHAR_ARRAYS_AS_JSON_ARRAYS
+#### SerializationFeature.WRITE_CHAR_ARRAYS_AS_JSON_ARRAYS
 序列化`char[]`时以`json`数组输出，默认`false`。
 
 需要注意的是对于第二种通过配置`SerializationConfig`和`DeserializationConfig`方式只能启动/禁止自动检测，无法修改我们所需的可见级别。
