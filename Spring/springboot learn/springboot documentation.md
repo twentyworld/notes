@@ -121,7 +121,7 @@ Spring Boot uses a very particular PropertySource order that is designed to allo
 * JNDI attributes from java:comp/env.
 * Java System properties (System.getProperties()).
 * OS environment variables.
-* A RandomValuePropertySource that only has properties in random.*.
+* A RandomValuePropertySource that only has properties in random.\*.
 * Profile-specific application properties outside of your packaged jar (application-{profile}.properties and YAML variants)
 * Profile-specific application properties packaged inside your jar (application-{profile}.properties and YAML variants)
 * Application properties outside of your packaged jar (application.properties and YAML variants).
