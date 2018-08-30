@@ -436,12 +436,60 @@ protected ModelAndView invokeHandlerMethod(HttpServletRequest request, HttpServl
 }
 ```
 
-也就是说，**@ModelAttribute是在controller的init操作中执行的，这时候，controller里面的方法还没有执行**。
+也就是说，**`@ModelAttribute`是在`controller`的`init`操作中执行的，这时候，`controller`里面的方法还没有执行**。
 
 #### 4.1.4 `ResponseBodyAdvice`成功
 先看看类的注释：
 >Allows customizing the response after the execution of an `@ResponseBody` or a `ResponseEntity` controller method but before the body is written with an `HttpMessageConverter`.
 Implementations may be registered directly with `RequestMappingHandlerAdapter` and `ExceptionHandlerExceptionResolver` or more likely annotated with `@ControllerAdvice` in which case they will be auto-detected by both.
+
+
+**ResponseBodyAdvice<T>** 接口：
+```Java
+/**
+ * Allows customizing the response after the execution of an {@code @ResponseBody}
+ * or a {@code ResponseEntity} controller method but before the body is written
+ * with an {@code HttpMessageConverter}.
+ *
+ * <p>Implementations may be registered directly with
+ * {@code RequestMappingHandlerAdapter} and {@code ExceptionHandlerExceptionResolver}
+ * or more likely annotated with {@code @ControllerAdvice} in which case they
+ * will be auto-detected by both.
+ *
+ * @author Rossen Stoyanchev
+ * @since 4.1
+ */
+public interface ResponseBodyAdvice<T> {
+
+	/**
+	 * Whether this component supports the given controller method return type
+	 * and the selected {@code HttpMessageConverter} type.
+	 * @param returnType the return type
+	 * @param converterType the selected converter type
+	 * @return {@code true} if {@link #beforeBodyWrite} should be invoked;
+	 * {@code false} otherwise
+	 */
+	boolean supports(MethodParameter returnType, Class<? extends HttpMessageConverter<?>> converterType);
+
+	/**
+	 * Invoked after an {@code HttpMessageConverter} is selected and just before
+	 * its write method is invoked.
+	 * @param body the body to be written
+	 * @param returnType the return type of the controller method
+	 * @param selectedContentType the content type selected through content negotiation
+	 * @param selectedConverterType the converter type selected to write to the response
+	 * @param request the current request
+	 * @param response the current response
+	 * @return the body that was passed in or a modified (possibly new) instance
+	 */
+	@Nullable
+	T beforeBodyWrite(@Nullable T body, MethodParameter returnType, MediaType selectedContentType,
+			Class<? extends HttpMessageConverter<?>> selectedConverterType,
+			ServerHttpRequest request, ServerHttpResponse response);
+
+}
+
+```
 
 也就是可以定制化通过`@ResponseBody`或者`ResponseEntity`配置的`controller`的返回值的`response`，而且是在生成`HttpMessageConverter`之前。
 注意这里跟`HandlerInterceptorAdapter`的区别，`HandlerInterceptorAdapter`的`postHandler`方法是在生成`HttpMessageConverter`之后，才执行。
