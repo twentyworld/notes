@@ -527,8 +527,8 @@ Cache-Times: 1535552738328
 ---
 
 参考：
-[详述 Spring MVC 框架中拦截器 Interceptor 的使用方法][1]
-[Spring - Modify response headers after controller processing][3]
+- [详述 Spring MVC 框架中拦截器 Interceptor 的使用方法][1]
+- [Spring - Modify response headers after controller processing][3]
 
 [1]:https://blog.csdn.net/qq_35246620/article/details/68487904?1491374806898
 [2]:https://blog.csdn.net/zx13525079024/article/category/6214162/2
