@@ -6,10 +6,12 @@
 ```shell
 git clone https://github.com/twentyworld/notes.git
 ```
+---
 
 **2. 在编辑器中编辑文件**
 具体工具请查看不同的文件查看详情。
-
+或者浏览[这里][1]
+---
 
 **3. 把改动push到github**
 
@@ -23,3 +25,6 @@ git push
 ```
 
 and do as youlike.
+
+
+[1]:https://github.com/twentyworld/notes/blob/master/markdown%20%E8%AF%AD%E6%B3%95.md
