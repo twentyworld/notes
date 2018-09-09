@@ -1,8 +1,9 @@
 # `Interceptor`的使用方法
 
->本文全文copy自作者`维C果糖`,文章出自`CSDN`。本文仅做学习记录使用。
+>本文前三章节全文copy自作者`维C果糖`,文章出自`CSDN`。本文仅做学习记录使用。
 >如果想更详细的了解文章，请[点击][1]去原文。表达对博主的感谢。
 
+> 代码被提交到[github][4]
 
 ## 1. 拦截器概念
 `Java`里的拦截器是动态拦截`action`调用的对象。它提供了一种机制可以使开发者可以定义在一个`action`执行的前后执行的代码，也可以在一个`action`执行前阻止其执行，同时也提供了一种可以提取`action`中可重用部分的方式。在`AOP`（`Aspect-OrientedProgramming`，面向切面编程）中拦截器用于在某个方法或字段被访问之前进行拦截，然后在之前或之后加入某些操作。
@@ -533,3 +534,4 @@ Cache-Times: 1535552738328
 [1]:https://blog.csdn.net/qq_35246620/article/details/68487904?1491374806898
 [2]:https://blog.csdn.net/zx13525079024/article/category/6214162/2
 [3]:https://mtyurt.net/post/spring-modify-response-headers-after-processing.html
+[4]:https://github.com/twentyworld/learn/tree/master/SpringBoot-Inteceptor-Filter
