@@ -1,4 +1,4 @@
-# Oracle中的逻辑地址和逻辑文件
+# Oracle中的逻辑结构
 
 ## `Tablespace` `Segment` `Extent` `Block`
 
@@ -66,5 +66,11 @@
 
 
 ---
+ 参考文章:
+- [Block，extent,segment介绍][2]
+- [Oracle逻辑结构 TableSpace→Segment→Extent→Block][3]
+
 
 [1]:https://images0.cnblogs.com/i/368951/201405/022207599866905.png
+[2]:https://blog.csdn.net/luoyuchuan/article/details/7208426
+[3]:https://www.cnblogs.com/yongjian/p/3704592.html

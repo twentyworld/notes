@@ -60,3 +60,13 @@
 > - 如果想保留表而将所有数据删除，如果和事务无关，用`truncate`即可；
 > - 如果和事务有关，或者想触发`trigger`，还是用`delete`；
 > - 如果是整理表内部的碎片，可以用`truncate`跟上`reuse stroage`，再重新导入/插入数据。
+
+
+---
+ 参考文章:
+- [删除表数据drop、truncate和delete的用法][2]
+- [drop、truncate和delete的区别][3]
+
+
+[2]:https://www.cnblogs.com/fjl0418/p/7929420.html
+[3]:https://www.cnblogs.com/zhizhao/p/7825469.html
