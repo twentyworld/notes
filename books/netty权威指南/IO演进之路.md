@@ -33,7 +33,7 @@
 该模型最大的问题性能问题，当客户端并发访问增加后，服务端线程增加，当线程数膨胀后，系统的性能下降，随着并发量增大，系统会发生线程堆栈溢出、创建新线程失败等问题，最终导致线程宕机或者僵死,不能对外提供服务。而且开线程有很大的开销，影响服务器性能。
 
 ##### 代码示例
-你可以在`[github][6]`上看到这些代码。
+你可以在[github][6]上看到这些代码。
 
 **Client 代码：**
 ```Java
@@ -143,7 +143,8 @@ class TimeServerHandler implements Runnable {
                 body = in.readLine();
                 if (body==null) break;
                 System.out.println("The time server receive order : " + body);
-                currentTime = "QUERY TIME ORDER".equalsIgnoreCase(body) ? new java.util.Date(System.currentTimeMillis()).toString() : "BAD ORDER";
+                currentTime = "QUERY TIME ORDER".equalsIgnoreCase(body) ?
+                  new java.util.Date(System.currentTimeMillis()).toString() : "BAD ORDER";
                 out.println(currentTime);
             }
 
@@ -194,7 +195,7 @@ class TimeServerHandler implements Runnable {
 
 
 ##### 代码示例
-你可以在`[github][7]`上看到这些代码。
+你可以在[github][7]上看到这些代码。
 
 主要发生的变化在Server上:
 ```Java
@@ -215,7 +216,8 @@ public class TimeServer {
             server = new ServerSocket(port);
             System.out.println("The time server is start in port : " + port);
             Socket socket = null;
-            TimeServerHandlerExecutePool singleExecutor = new TimeServerHandlerExecutePool(50, 10000);// 创建IO任务线程池
+            TimeServerHandlerExecutePool singleExecutor =
+              new TimeServerHandlerExecutePool(50, 10000);// 创建IO任务线程池
             while (true) {
                 socket = server.accept();
                 singleExecutor.execute(new TimeServerHandler(socket));
@@ -257,7 +259,7 @@ public class TimeServerHandlerExecutePool {
 一个多路复用器可以同时轮询多个`Channel`，而且由于`jdk`使用了`epoll`替代了`select`实现，所以没有最大连接句柄的限制。（题外话，这里说的`eopll`、`select`是说的`linux`下的`IO`复用，和`select`、`epoll`一样，清楚流程概念请直接看源码）。
 
 ##### 代码示例
-你可以在`[github][8]`上看到这些代码。
+你可以在[github][8]上看到这些代码。
 
 **Client:**
 ```Java
@@ -385,7 +387,8 @@ public class TimeClientHandle implements Runnable {
         writeBuffer.put(req);
         writeBuffer.flip();
         sc.write(writeBuffer);
-        if (!writeBuffer.hasRemaining()) System.out.println("Send order 2 server succeed.");
+        if (!writeBuffer.hasRemaining())
+          System.out.println("Send order 2 server succeed.");
     }
 
 }
@@ -491,7 +494,8 @@ class MultiplexerTimeServer implements Runnable {
                     readBuffer.get(bytes);
                     String body = new String(bytes, "UTF-8");
                     System.out.println("The time server receive order : " + body);
-                    String currentTime = "QUERY TIME ORDER".equalsIgnoreCase(body) ? new java.util.Date(System.currentTimeMillis()).toString() : "BAD ORDER";
+                    String currentTime = "QUERY TIME ORDER".equalsIgnoreCase(body) ?
+                      new java.util.Date(System.currentTimeMillis()).toString() : "BAD ORDER";
                     doWrite(sc, currentTime);
                 } else if (readBytes < 0) {
                     // 对端链路关闭
@@ -703,7 +707,7 @@ socketChannel.wite(buffer);
 
 `NIO2.0`的异步套接字通道，对应`UNIX`网络编程中的`事件驱动IO`（AIO），它不需要通过多路复用器`Selector`对注册的通道进行轮询操作。
 ##### 代码示例
-你可以在`[github][9]`上看到这些代码。
+你可以在[github][9]上看到这些代码。
 
 5. 四种IO比较
 
@@ -716,7 +720,6 @@ socketChannel.wite(buffer);
 [3]:https://images2015.cnblogs.com/blog/478846/201511/478846-20151125150330265-1118717241.png
 [4]:https://images2015.cnblogs.com/blog/478846/201511/478846-20151127115604187-1347290251.png
 [5]:https://images2015.cnblogs.com/blog/478846/201511/478846-20151127125602796-10241097.png
-
 [6]:https://github.com/twentyworld/learn/tree/master/NettyLearn/src/main/java/com/learn/TimeHandler/bio
 [7]:https://github.com/twentyworld/learn/tree/master/NettyLearn/src/main/java/com/learn/TimeHandler/pio
 [8]:https://github.com/twentyworld/learn/tree/master/NettyLearn/src/main/java/com/learn/TimeHandler/nio
