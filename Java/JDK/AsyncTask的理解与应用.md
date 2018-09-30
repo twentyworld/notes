@@ -62,7 +62,7 @@ public abstract class AsyncTask<Params, Progress, Result>
 其次，我们来了解一些相关代码。其实下载的代码原理很简单，就是通过流的方式转为字节数组，然后再转化为Bitmap而已。
 
 
-```
+```Java
 //进度框显示
 
         progressDialog = new ProgressDialog(MainActivity.this);
@@ -165,7 +165,7 @@ new MyAsyncTask().execute(picUrl);
 
 首先我们从异步任务的起点execute开始分析：
 
-```
+```Java
 
 //<p>This method must be invoked on the UI thread.
 //必须在UI主线程中调用该方法。
@@ -207,7 +207,7 @@ new MyAsyncTask().execute(picUrl);
 
 **1、对于mWork变量**
 
-```
+```Java
 private final WorkerRunnable<Params, Result> mWorker;
 
 private static abstract class WorkerRunnable<Params, Result> implements Callable<Result> {
@@ -240,7 +240,7 @@ mWorker = new WorkerRunnable<Params, Result>() {
 ```
 从上面源码我们可以分析出mWork在AsyncTask的构造函数中进行初始化，然后实现CallBack的call方法，进行一些设置，然后调用doInBackground方法，最后执行postResult(result)进行结果处理，接下来我们继续分析postResult(result)方法。
 
-```
+```Java
 private Result postResult(Result result) {
         @SuppressWarnings("unchecked")
         Message message = getHandler().obtainMessage(MESSAGE_POST_RESULT,
@@ -252,14 +252,14 @@ private Result postResult(Result result) {
 
 我们看到了熟悉的异步消息处理，Handler和Message，发送一个消息，
 
-```
+```Java
 msg.what=MESSAGE_POST_RESULT;
 msg.obj=new AsyncTaskResult<Result>(this, result);
 ```
 
 从上面的代码我们可以知道，既然handler已经发送出了消息的话，，那么肯定会存在一个Handler，并在某处进行消息的处理，我们来继续寻找一下这些内容：
 
-```
+```Java
 //找到相关的Handler
 private static Handler getHandler() {
         synchronized (AsyncTask.class) {
@@ -310,7 +310,7 @@ private static class InternalHandler extends Handler {
 
 **2、对于mFuture变量**
 
-```
+```Java
 //申明变量
 private final FutureTask<Result> mFuture;
 
@@ -350,7 +350,7 @@ mFuture = new FutureTask<Result>(mWorker) {
 
 这个exec其实就是sDefaultExecutor，那么这个sDefaultExecutor是什么东西呢？
 
-```
+```Java
 
 //sDefaultExecutor的定义
 private static volatile Executor sDefaultExecutor = SERIAL_EXECUTOR;
@@ -396,7 +396,7 @@ private static class SerialExecutor implements Executor {
 
 那么这个THREAD_POOL_EXECUTOR又是什么东西呢？接着分析这个变量：
 
-```
+```Java
 /**
      * An {@link Executor} that can be used to execute tasks in parallel.
      */
@@ -427,7 +427,7 @@ private static class SerialExecutor implements Executor {
 
 这里面我们涉及到了4个方法中的三个，那么还有一个方法：
 
-```
+```Java
 //更新进度
 @Override
         protected void onProgressUpdate(Integer... values) {
@@ -438,7 +438,7 @@ private static class SerialExecutor implements Executor {
 
 那么这个方法是什么时候调用的的呢？我们在使用AsyncTask中的第三个方法doInBackground时在里面我们调用了一个传递进度的方法 publishProgress(int progress)，我们进入到该方法中查看一下：
 
-```
+```Java
 //工作线程中执行该方法
 @WorkerThread
     protected final void publishProgress(Progress... values) {
@@ -451,7 +451,7 @@ private static class SerialExecutor implements Executor {
 ```
 publishProgress方法其实就是发送一个消息，
 
-```
+```Java
 msg.what=MESSAGE_POST_PROGRESS//消息类型
 msg.obj=new AsyncTaskResult<Progress>(this, values)//进度
 
@@ -482,35 +482,6 @@ private static class InternalHandler extends Handler {
 ```
 
 这就很明朗了，四个方法都调用到了。以上便是AsyncTask所有的执行流程，通过源码分析可得AsyncTask的内部也是使用Handler+Message的方式进行消息传递和处理的。
-
-### 关于AsyncTask的内幕
-
-
-
-[1、深入理解AsyncTask的内幕，线程池引发的重大问题](http://blog.csdn.net/hitlion2008/article/details/7983449)
-
-
-
-
-### 注意
-Android6.0 谷歌把HttpClient相关的类移除了，所以如果继续使用的话，需要添加相关的jar包。
-
-**1、对于AndroidStudio的添加方法是：**
-
-```
-在相应的module下的build.gradle中加入：
-android {
-    useLibrary 'org.apache.http.legacy'
-}
-```
-
-**2、对于Eclipse的添加方法是：**
-
-```
-libs中加入
-org.apache.http.legacy.jar
-上面的jar包在：**\android-sdk-windows\platforms\android-23\optional下（需要下载android 6.0的SDK）
-```
 
 ### 参考链接
 [1、http://www.cnblogs.com/xiaoluo501395377/p/3430542.html](http://www.cnblogs.com/xiaoluo501395377/p/3430542.html)

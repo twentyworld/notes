@@ -33,8 +33,6 @@ public interface ExecutorService extends Executor {
 
 ```
 
-
-
 ```Java
 
 
