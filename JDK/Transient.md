@@ -9,7 +9,7 @@
 总之，java 的transient关键字为我们提供了便利，你只需要实现Serilizable接口，将不需要序列化的属性前添加关键字transient，序列化对象的时候，这个属性就不会序列化到指定的目的地中。
 
 **示例code如下:**
-
+```Java
 	import java.io.FileInputStream;
 	import java.io.FileNotFoundException;
 	import java.io.FileOutputStream;
@@ -88,9 +88,9 @@
 	    }
 
 	}
-
+```
 输出为：
-
+```
 	read before Serializable:
 	username: Alexia
 	password: 123456
@@ -98,7 +98,7 @@
 	read after Serializable:
 	username: Alexia
 	password: null
-
+```
 密码字段为null，说明反序列化时根本没有从文件中获取到信息。
 
 #### 2. transient使用小结
@@ -110,7 +110,7 @@
 3）被transient关键字修饰的变量不再能被序列化，一个静态变量不管是否被transient修饰，均不能被序列化。
 
 第三点可能有些人很迷惑，因为发现在User类中的username字段前加上static关键字后，程序运行结果依然不变，即static类型的username也读出来为“Alexia”了，这不与第三点说的矛盾吗？实际上是这样的：第三点确实没错（一个静态变量不管是否被transient修饰，均不能被序列化），反序列化后类中static型变量username的值为当前JVM中对应static变量的值，这个值是JVM中的不是反序列化得出的，不相信？好吧，下面我来证明：
-
+```Java
 	import java.io.FileInputStream;
 	import java.io.FileNotFoundException;
 	import java.io.FileOutputStream;
@@ -193,8 +193,9 @@
 
 	}
 
+```
 运行结果为：
-
+```
 	read before Serializable:
 	username: Alexia
 	password: 123456
@@ -202,58 +203,58 @@
 	read after Serializable:
 	username: jmwang
 	password: null
-
+```
 这说明反序列化后类中static型变量username的值为当前JVM中对应static变量的值，为修改后jmwang，而不是序列化时的值Alexia。
 
 #### 3. transient使用细节——被transient关键字修饰的变量真的不能被序列化吗？
 
 思考下面的例子：
+```Java
+import java.io.Externalizable;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutput;
+import java.io.ObjectOutputStream;
 
-	import java.io.Externalizable;
-	import java.io.File;
-	import java.io.FileInputStream;
-	import java.io.FileOutputStream;
-	import java.io.IOException;
-	import java.io.ObjectInput;
-	import java.io.ObjectInputStream;
-	import java.io.ObjectOutput;
-	import java.io.ObjectOutputStream;
+/**
+ * @descripiton Externalizable接口的使用
+ */
+public class ExternalizableTest implements Externalizable {
 
-	/**
-	 * @descripiton Externalizable接口的使用
-	 */
-	public class ExternalizableTest implements Externalizable {
+    private transient String content = "是的，我将会被序列化，不管我是否被transient关键字修饰";
 
-	    private transient String content = "是的，我将会被序列化，不管我是否被transient关键字修饰";
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        out.writeObject(content);
+    }
 
-	    @Override
-	    public void writeExternal(ObjectOutput out) throws IOException {
-	        out.writeObject(content);
-	    }
+    @Override
+    public void readExternal(ObjectInput in) throws IOException,
+            ClassNotFoundException {
+        content = (String) in.readObject();
+    }
 
-	    @Override
-	    public void readExternal(ObjectInput in) throws IOException,
-	            ClassNotFoundException {
-	        content = (String) in.readObject();
-	    }
+    public static void main(String[] args) throws Exception {
 
-	    public static void main(String[] args) throws Exception {
+        ExternalizableTest et = new ExternalizableTest();
+        ObjectOutput out = new ObjectOutputStream(new FileOutputStream(
+                new File("test")));
+        out.writeObject(et);
 
-	        ExternalizableTest et = new ExternalizableTest();
-	        ObjectOutput out = new ObjectOutputStream(new FileOutputStream(
-	                new File("test")));
-	        out.writeObject(et);
+        ObjectInput in = new ObjectInputStream(new FileInputStream(new File(
+                "test")));
+        et = (ExternalizableTest) in.readObject();
+        System.out.println(et.content);
 
-	        ObjectInput in = new ObjectInputStream(new FileInputStream(new File(
-	                "test")));
-	        et = (ExternalizableTest) in.readObject();
-	        System.out.println(et.content);
-
-	        out.close();
-	        in.close();
-	    }
-	}
-
+        out.close();
+        in.close();
+    }
+}
+```
 content变量会被序列化吗？好吧，我把答案都输出来了，是的，运行结果就是：
 
 	是的，我将会被序列化，不管我是否被transient关键字修饰
@@ -263,12 +264,14 @@ content变量会被序列化吗？好吧，我把答案都输出来了，是的�
 我们知道在Java中，对象的序列化可以通过实现两种接口来实现，若实现的是Serializable接口，则所有的序列化将会自动进行，若实现的是Externalizable接口，则没有任何东西可以自动序列化，需要在writeExternal方法中进行手工指定所要序列化的变量，这与是否被transient修饰无关。因此第二个例子输出的是变量content初始化的内容，而不是null。
 
 #### 关于java.io.Serializable序列化
+
 Java API中java.io.Serializable接口源码：
 
-     public interface Serializable {
+```Java
+ public interface Serializable {
 
-     }
-
+ }
+```
 类通过实现java.io.Serializable接口可以启用其序列化功能。未实现次接口的类无法使其任何状态序列化或反序列化。可序列化类的所有子类型本身都是可序列化的。序列化接口没有方法或字段，仅用于标识可序列化的语义。
 
 Java的"对象序列化"能让你将一个实现了Serializable接口的对象转换成byte流，这样日后要用这个对象时候，你就能把这些byte数据恢复出来，并据此重新构建那个对象了。

@@ -13,6 +13,7 @@ volatile是不错的机制，但是volatile不能保证原子性。因此对于�
 
 独占锁是一种悲观锁，synchronized就是一种独占锁，会导致其它所有需要锁的线程挂起，等待持有锁的线程释放锁。而另一个更加有效的锁就是乐观锁。所谓乐观锁就是，每次不加锁而是假设没有冲突而去完成某项操作，如果因为冲突失败就重试，直到成功为止。乐观锁用到的机制就是CAS，Compare and Swap。
 
+## CAS的原理
 
 ### CAS的基本概念
 
@@ -116,3 +117,258 @@ Java的CAS会使用现代处理器上提供的高效机器级别原子指令，�
 首先，声明共享变量为volatile；
 然后，使用CAS的原子条件更新来实现线程之间的同步；
 同时，配合以volatile的读/写和CAS所具有的volatile读和写的内存语义来实现线程之间的通信。
+
+
+## JUC并发框架下的原子类(atomic)
+> 注意，本文章引用自[Java并发_CAS原理分析][1],如果想查看更详细的部分，请点击前往。
+
+调用JUC并发框架下原子类的方法时，不需要考虑多线程问题。那么我们分析它是怎么解决多线程问题的。以AtomicInteger类为例
+
+
+### 成员变量
+
+```Java
+// 通过它来实现CAS操作的。因为是int类型，所以调用它的compareAndSwapInt方法
+private static final Unsafe unsafe = Unsafe.getUnsafe();
+
+// value这个共享变量在AtomicInteger对象上内存偏移量，
+// 通过它直接在内存中修改value的值，compareAndSwapInt方法中需要这个参数
+private static final long valueOffset;
+
+// 通过静态代码块，在AtomicInteger类加载时就会调用
+static {
+    try {
+        // 通过unsafe类，获取value变量在AtomicInteger对象上内存偏移量
+        valueOffset = unsafe.objectFieldOffset
+            (AtomicInteger.class.getDeclaredField("value"));
+    } catch (Exception ex) { throw new Error(ex); }
+}
+
+// 共享变量，AtomicInteger就保证了对它多线程操作的安全性。
+// 使用volatile修饰，解决了可见性和有序性问题。
+private volatile int value;
+```
+有三个重要的属性：
+- unsafe: 通过它实现CAS操作，因为共享变量是int类型，所以调用compareAndSwapInt方法。
+- valueOffset: 共享变量value在AtomicInteger对象上内存偏移量
+- value: 共享变量，使用volatile修饰，解决了可见性和有序性问题。
+
+### 重要方法
+
+#### 1. get与set方法
+```Java
+// 直接读取。因为是volatile关键子修饰的，总是能看到(任意线程)对这个volatile变量最新的写入
+public final int get() {
+    return value;
+}
+
+// 直接写入。因为是volatile关键子修饰的，所以它修改value变量也会立即被别的线程读取到。
+public final void set(int newValue) {
+    value = newValue;
+}
+
+```
+
+因为value变量是volatile关键字修饰的，它总是能读取(任意线程)对这个volatile变量最新的写入。它修改value变量也会立即被别的线程读取到。
+
+#### 2. compareAndSet方法
+```Java
+// 如果value变量的当前值(内存值)等于期望值(expect)，那么就把update赋值给value变量，返回true。
+// 如果value变量的当前值(内存值)不等于期望值(expect)，就什么都不做，返回false。
+// 这个就是CAS操作，使用unsafe.compareAndSwapInt方法，保证整个操作过程的原子性
+public final boolean compareAndSet(int expect, int update) {
+    return unsafe.compareAndSwapInt(this, valueOffset, expect, update);
+}
+```
+
+通过调用unsafe的compareAndSwapInt方法实现CAS函数的。但是CAS函数只能保证比较并交换操作的原子性，但是更新操作并不一定会执行。比如我们想让共享变量value自增。
+共享变量value自增是三个操作，1.读取value值，2.计算value+1的值，3.将value+1的值赋值给value。分析这三个操作：
+
+读取value值,因为value变量是volatile关键字修饰的，能够读取到任意线程对它最后一次修改的值，所以没问题。
+计算value+1的值：这个时候就有问题了，可能在计算这个值的时候，其他线程更改了value值，因为没有加同步锁，所以其他线程可以更改value值。
+
+将value+1的值赋值给value: 使用CAS函数，如果返回false，说明在当前线程读取value值到调用CAS函数方法前，共享变量被其他线程修改了，那么value+1的结果值就不是我们想要的了，因为要重新计算。
+
+#### 3. getAndAddInt方法
+```Java
+ public final int getAndAddInt(Object obj, long valueOffset, int var) {
+    int expect;
+    // 利用循环，直到更新成功才跳出循环。
+    do {
+        // 获取value的最新值
+        expect = this.getIntVolatile(obj, valueOffset);
+        // expect + var表示需要更新的值，如果compareAndSwapInt返回false，说明value值被其他线程更改了。
+        // 那么就循环重试，再次获取value最新值expect，然后再计算需要更新的值expect + var。直到更新成功
+    } while(!this.compareAndSwapInt(obj, valueOffset, expect, expect + var));
+
+    // 返回当前线程在更改value成功后的，value变量原先值。并不是更改后的值
+    return expect;
+}
+```
+
+这个方法在Unsafe类中，利用do_while循环，先利用当前值，计算更新值，然后通过compareAndSwapInt方法设置value变量，如果compareAndSwapInt方法返回失败，表示value变量的值被别的线程更改了，所以循环获取value变量最新值，再通过compareAndSwapInt方法设置value变量。直到设置成功。跳出循环，返回更新前的值。
+
+```Java
+// 将value的值当前值的基础上加1，并返回当前值
+public final int getAndIncrement() {
+    return unsafe.getAndAddInt(this, valueOffset, 1);
+}
+
+// 将value的值当前值的基础上加-1，并返回当前值
+public final int getAndDecrement() {
+    return unsafe.getAndAddInt(this, valueOffset, -1);
+}
+
+
+// 将value的值当前值的基础上加delta，并返回当前值
+public final int getAndAdd(int delta) {
+    return unsafe.getAndAddInt(this, valueOffset, delta);
+}
+
+
+// 将value的值当前值的基础上加1，并返回更新后的值(即当前值加1)
+public final int incrementAndGet() {
+    return unsafe.getAndAddInt(this, valueOffset, 1) + 1;
+}
+
+// 将value的值当前值的基础上加-1，并返回更新后的值(即当前值加-1)
+public final int decrementAndGet() {
+    return unsafe.getAndAddInt(this, valueOffset, -1) - 1;
+}
+
+// 将value的值当前值的基础上加delta，并返回更新后的值(即当前值加delta)
+public final int addAndGet(int delta) {
+    return unsafe.getAndAddInt(this, valueOffset, delta) + delta;
+}
+```    
+都是利用unsafe.getAndAddInt方法实现的。
+
+#### 实例：
+
+```Java
+class Data {
+    AtomicInteger num;
+
+    public Data(int num) {
+        this.num = new AtomicInteger(num);
+    }
+
+    public int getAndDecrement() {
+        return num.getAndDecrement();
+    }
+}
+
+class MyRun implements Runnable {
+
+    private Data data;
+    // 用来记录所有卖出票的编号
+    private List<Integer> list;
+    private CountDownLatch latch;
+
+    public MyRun(Data data, List<Integer> list, CountDownLatch latch) {
+        this.data = data;
+        this.list = list;
+        this.latch = latch;
+    }
+
+    @Override
+    public void run() {
+        try {
+            action();
+        }  finally {
+            // 释放latch共享锁
+            latch.countDown();
+        }
+    }
+
+    // 进行买票操作，注意这里没有使用data.num>0作为判断条件，直到卖完线程退出。
+    // 那么做会导致这两处使用了共享变量data.num，那么做多线程同步时，就要考虑更多条件。
+    // 这里只for循环了5次，表示每个线程只卖5张票，并将所有卖出去编号存入list集合中。
+    public void action() {
+        for (int i = 0; i < 5; i++) {
+            try {
+                Thread.sleep(10);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            int newNum = data.getAndDecrement();
+
+            System.out.println("线程"+Thread.currentThread().getName()+"  num=="+newNum);
+            list.add(newNum);
+        }
+    }
+}
+
+public class ThreadTest {
+
+
+    public static void startThread(Data data, String name, List<Integer> list,CountDownLatch latch) {
+        Thread t = new Thread(new MyRun(data, list, latch), name);
+        t.start();
+    }
+
+    public static void main(String[] args) {
+        // 使用CountDownLatch来让主线程等待子线程都执行完毕时，才结束
+        CountDownLatch latch = new CountDownLatch(6);
+
+        long start = System.currentTimeMillis();
+        // 这里用并发list集合
+        List<Integer> list = new CopyOnWriteArrayList();
+        Data data = new Data(30);
+        startThread(data, "t1", list, latch);
+        startThread(data, "t2", list, latch);
+        startThread(data, "t3", list, latch);
+        startThread(data, "t4", list, latch);
+        startThread(data, "t5", list, latch);
+        startThread(data, "t6", list, latch);
+
+
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        // 处理一下list集合，进行排序和翻转
+        Collections.sort(list);
+        Collections.reverse(list);
+        System.out.println(list);
+
+        long time = System.currentTimeMillis() - start;
+        // 输出一共花费的时间
+        System.out.println("\n主线程结束 time=="+time);
+    }
+}
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[1]:https://www.jianshu.com/p/a142350e9b7a

@@ -16,11 +16,11 @@ Android系统默认不会给我们的应用程序组件创建一个额外的线�
 
 ## AsyncTask
 
- 
+
 关于AsyncTask的解释，Google上面是这样说的：
 
 > AsyncTask enables proper and easy use of the UI thread. This class allows you to perform background operations and publish results on the UI thread without having to manipulate threads and/or handlers.
-> 
+>
 > An asynchronous task is defined by a computation that runs on a background thread and whose result is published on the UI thread. An asynchronous task is defined by 3 generic types, called Params, Progress and Result, and 4 steps, called onPreExecute, doInBackground, onProgressUpdate and onPostExecute.
 
 大概意思就是说“它使创建异步任务变得更加简单，不再需要编写任务线程和Handler实例即可完成相同的任务。一个异步任务通常是在后台运行的计算等然后将结果发送到UI主线程中去。通常情况下，异步任务被定义为3中通用类型，分别为：参数、过程以及结果和4个步骤，分别为“onPreExecute、doInBackground、onProgressUpdate、onPostExecute””这就是关于异步任务的大概说明。
@@ -31,7 +31,7 @@ Android系统默认不会给我们的应用程序组件创建一个额外的线�
 3个泛型指的是什么呢？我们来看看AsyncTask这个抽象类的定义，当我们定义一个类来继承AsyncTask这个类的时候，我们需要为其指定3个泛型参数：
 
 ```
-public abstract class AsyncTask<Params, Progress, Result> 
+public abstract class AsyncTask<Params, Progress, Result>
 ```
 **Params:** 这个泛型指定的是我们传递给异步任务执行时的参数的类型
 **Progress:** 这个泛型指定的是我们的异步任务在执行的时候将执行的进度返回给UI线程的参数的类型
@@ -40,16 +40,16 @@ public abstract class AsyncTask<Params, Progress, Result>
 ### 4个步骤
 4个步骤：当我们执行一个异步任务的时候，其需要按照下面的4个步骤分别执行：
 
-**1、onPreExecute():** 
+**1、onPreExecute():**
 这个方法是在执行异步任务之前的时候执行，并且是在UI Thread当中执行的，通常我们在这个方法里做一些UI控件的初始化的操作，例如弹出要给ProgressDialog。
 
-**2、doInBackground(Params... params):** 
+**2、doInBackground(Params... params):**
 在onPreExecute()方法执行完之后，会马上执行这个方法，这个方法就是来处理异步任务的方法，Android操作系统会在后台的线程池当中开启一个worker thread来执行我们的这个方法，所以这个方法是在worker thread当中执行的，这个方法执行完之后就可以将我们的执行结果发送给我们的最后一个 onPostExecute 方法，在这个方法里，我们可以从网络当中获取数据等一些耗时的操作。
 
-**3、onProgressUpdate(Progess... values):** 
+**3、onProgressUpdate(Progess... values):**
 这个方法也是在UI Thread当中执行的，我们在异步任务执行的时候，有时候需要将执行的进度返回给我们的UI界面，例如下载一张网络图片，我们需要时刻显示其下载的进度，就可以使用这个方法来更新我们的进度。这个方法在调用之前，我们需要在 doInBackground 方法中调用一个 publishProgress(Progress) 的方法来将我们的进度时时刻刻传递给 onProgressUpdate 方法来更新。
 
-**4、onPostExecute(Result... result):** 
+**4、onPostExecute(Result... result):**
 当我们的异步任务执行完之后，就会将结果返回给这个方法，这个方法也是在UI Thread当中调用的，我们可以将返回的结果显示在UI控件上。
 
 > 为什么我们的AsyncTask抽象类只有一个 doInBackground 的抽象方法呢？？原因是，我们如果要做一个异步任务，我们必须要为其开辟一个新的Thread，让其完成一些操作，而在完成这个异步任务时，我可能并不需要弹出要给ProgressDialog，我并不需要随时更新我的ProgressDialog的进度条，我也并不需要将结果更新给我们的UI界面，所以除了 doInBackground 方法之外的三个方法，都不是必须有的，因此我们必须要实现的方法是 doInBackground 方法。
@@ -63,7 +63,6 @@ public abstract class AsyncTask<Params, Progress, Result>
 
 
 ```
-
 //进度框显示
 
         progressDialog = new ProgressDialog(MainActivity.this);
@@ -174,7 +173,7 @@ new MyAsyncTask().execute(picUrl);
     public final AsyncTask<Params, Progress, Result> execute(Params... params) {
         return executeOnExecutor(sDefaultExecutor, params);
     }
-    
+
 //跳转到executeOnExecutor方法
 @MainThread
     public final AsyncTask<Params, Progress, Result> executeOnExecutor(Executor exec,
@@ -210,7 +209,7 @@ new MyAsyncTask().execute(picUrl);
 
 ```
 private final WorkerRunnable<Params, Result> mWorker;
- 
+
 private static abstract class WorkerRunnable<Params, Result> implements Callable<Result> {
         Params[] mParams;
     }
@@ -223,7 +222,7 @@ mWorker = new WorkerRunnable<Params, Result>() {
                 Result result = null;
                 try {
                     Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND);
-                    //noinspection unchecked 
+                    //noinspection unchecked
                     //这就是我们使用到的4个方法中的一个，获取处理结果
                     result = doInBackground(mParams);
                     Binder.flushPendingCommands();
@@ -384,10 +383,10 @@ private static class SerialExecutor implements Executor {
         }
 
         protected synchronized void scheduleNext() {
-	
+
 			//取出队首的任务开始执行
             if ((mActive = mTasks.poll()) != null) {
-			
+
 				//开始执行任务
                 THREAD_POOL_EXECUTOR.execute(mActive);
             }
@@ -473,7 +472,7 @@ private static class InternalHandler extends Handler {
                     result.mTask.finish(result.mData[0]);
                     break;
                 case MESSAGE_POST_PROGRESS://处理进度消息
-                
+
                     //调用onProgressUpdate方法显示进度
                     result.mTask.onProgressUpdate(result.mData);
                     break;
