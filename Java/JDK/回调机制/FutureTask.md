@@ -1,7 +1,12 @@
-
 ## FutureTask
 
+FutureTask是一个可取消的异步计算任务。FutureTask提供了对 Future 的基本实现。仅在计算完成时才能获取结果；如果计算尚未完成，则阻塞 get 方法。一旦计算完成，就不能再重新开始或取消计算。
 
+可使用 FutureTask 包装 Callable 或 Runnable 对象。因为 FutureTask 实现了 Runnable，所以可将 FutureTask 提交给 Executor 执行。
+
+除了作为一个独立的类外，FutureTask还提供了 protected 功能（done()、set(V v)等方法），这在创建自定义任务类时可能很有用。
+
+### Future的构造方法
 ```Java
 
 public interface RunnableFuture<V> extends Runnable, Future<V> {
@@ -46,6 +51,8 @@ public class FutureTask<V> implements RunnableFuture<V> {
 
 }
 ```
+一种是直接指定 Callable为参数。另一种则是指定了 Runnable与 result。
+
 
 ### 1.  FutureTask的状态
 根据Future接口，我们至少判断FutureTask有三种状态，新建状态，完成状态和取消状态。但是因为还有异常和中断操作，状态多了几种。
