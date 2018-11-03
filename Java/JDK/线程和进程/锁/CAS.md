@@ -35,7 +35,7 @@ public final native boolean compareAndSwapInt(Object o, long offset,
 ```
 可以看到这是个本地方法调用。这个本地方法在openjdk中依次调用的c++代码为：unsafe.cpp，atomic.cpp和atomicwindowsx86.inline.hpp。这个本地方法的最终实现在openjdk的如下位置：openjdk-7-fcs-src-b147-27jun2011\\openjdk\\hotspot\\src\\oscpu\\windowsx86\\vm\\ atomicwindowsx86.inline.hpp（对应于windows操作系统，X86处理器）。下面是对应于intel x86处理器的源代码的片段：
 
-```
+```assembly
 // Adding a lock prefix to an instruction on MP machine
 // VC++ doesn't like the lock prefix to be on a single line
 // so we can't insert a label after the lock prefix.
@@ -68,7 +68,7 @@ inline jint     Atomic::cmpxchg    (jint     exchange_value, volatile jint*     
 
 #### CPU的锁类型
 ##### 1. 处理器自动保证基本内存操作的原子性
-首先处理器会自动保证基本的内存操作的原子性。处理器保证从系统内存当中读取或者写入一个字节是原子的，意思是当一个处理器读取一个字节时，其他处理器不能访问这个字节的内存地址。奔腾6和最新的处理器能自动保证单处理器对同一个缓存行里进行16/32/64位的操作是原子的，但是复杂的内存操作处理器不能自动保证其原子性，比如跨总线宽度，跨多个缓存行，跨页表的访问。但是处理器提供总线锁定和缓存锁定两个机制来保证复杂内存操作的原子性。
+首先处理器会自动保证基本的内存操作的原子性。处理器保证从系统内存当中读取或者写入一个字节是原子的，意思是当一个处理器读取一个字节时，其他处理器不能访问这个字节的内存地址。奔腾6和最新的处理器能自动保证单处理器对同一个缓存行里进行16/32/64位的操作是原子的，但是复杂的内存操作，处理器不能自动保证其原子性，比如跨总线宽度，跨多个缓存行，跨页表的访问。但是处理器提供总线锁定和缓存锁定两个机制来保证复杂内存操作的原子性。
 
 ##### 2. 使用总线锁保证原子性
 第一个机制是通过总线锁保证原子性。如果多个处理器同时对共享变量进行读改写（i++就是经典的读改写操作）操作，那么共享变量就会被多个处理器同时进行操作，这样读改写操作就不是原子的，操作完之后共享变量的值会和期望的不一致，举个例子：如果i=1,我们进行两次i++操作，我们期望的结果是3，但是有可能结果是2。原因是有可能多个处理器同时从各自的缓存中读取变量i，分别进行加一操作，然后分别写入系统内存当中。那么想要保证读改写共享变量的操作是原子的，就必须保证CPU1读改写共享变量的时候，CPU2不能操作缓存了该共享变量内存地址的缓存。
@@ -240,7 +240,7 @@ public final int decrementAndGet() {
 public final int addAndGet(int delta) {
     return unsafe.getAndAddInt(this, valueOffset, delta) + delta;
 }
-```    
+```
 都是利用unsafe.getAndAddInt方法实现的。
 
 #### 实例：
