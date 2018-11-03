@@ -8,11 +8,13 @@
 我写过一个通过ApplicationContext.xml来写的IOC， 代码在这里
 https://github.com/twentyworld/learn/tree/master/Spring-Framework/SpringLearn
 
+
 有一些很关键的类，你要知道他们做什么的
-BeanFactory
-ApplicationContext
-ClassPathXmlApplicationContext
-FactoryBean
+
+- BeanFactory
+- ApplicationContext
+- ClassPathXmlApplicationContext
+- FactoryBean
 ---
 ##### 有哪些依赖注入方式
 Setter 构造器
