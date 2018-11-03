@@ -91,9 +91,9 @@ autodetect：首先尝试使用constructor来自动装配，如果无法工作�
 ##### 如何通过HibernateDaoSupport将Spring和Hibernate结合起来
 
 参考文档
-https://www.cnblogs.com/wang-meng/p/5701982.html
-https://www.javacodegeeks.com/2014/05/spring-interview-questions-and-answers.html
-https://www.cnblogs.com/liangyihui/p/5917773.html
+- https://www.cnblogs.com/wang-meng/p/5701982.html
+- https://www.javacodegeeks.com/2014/05/spring-interview-questions-and-answers.html
+- https://www.cnblogs.com/liangyihui/p/5917773.html
 
 ### 面试中经常被问到的问题。
 - Spring中Bean 的生命周期是怎么样的？
@@ -106,13 +106,13 @@ https://www.cnblogs.com/liangyihui/p/5917773.html
 - IOC的缺点
 
 这几个问题的blog解决。
-https://blog.csdn.net/qq_18860653/article/details/53218117
-https://blog.csdn.net/hi_kevin/article/details/7325554
-http://www.cnblogs.com/redcool/p/6413461.html
-http://www.cnblogs.com/zhangminghui/p/4261377.html
-https://www.cnblogs.com/wang-meng/p/5701982.html
-https://blog.csdn.net/eluanshi12/article/details/80005687
-https://blog.csdn.net/hla199106/article/details/47614527
+- https://blog.csdn.net/qq_18860653/article/details/53218117
+- https://blog.csdn.net/hi_kevin/article/details/7325554
+- http://www.cnblogs.com/redcool/p/6413461.html
+- http://www.cnblogs.com/zhangminghui/p/4261377.html
+- https://www.cnblogs.com/wang-meng/p/5701982.html
+- https://blog.csdn.net/eluanshi12/article/details/80005687
+- https://blog.csdn.net/hla199106/article/details/47614527
 
 参考阅读：
 这个是最全的，包括IOC的特性，源码解读，还有高级特性。
