@@ -77,37 +77,6 @@ ContextLoader有两个实现：ContextLoaderListener和ContextLoaderServlet。�
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 资料：
 - [spring中的BeanFactory与ApplicationContext的作用和区别][3]
 
