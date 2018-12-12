@@ -135,8 +135,3 @@ response.addCookie(cookie); // 输出到客户端
 `secure`属性并不能对`Cookie`内容加密，因而不能保证绝对的安全性。如果需要高安全性，需要在程序中对`Cookie`内容加密、解密，以防泄密。
 
 `Cookie`是保存在浏览器端的，因此浏览器具有操作`Cookie`的先决条件。浏览器可以使用脚本程序如`JavaScript`或者`VBScript`等操作`Cookie`。
-
-
-
-
-[1]:https://images.cnblogs.com/cnblogs_com/andy-zhou/811282/o_Cookie_Session001.png
