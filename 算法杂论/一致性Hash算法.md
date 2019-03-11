@@ -1,4 +1,4 @@
-一致性Hash算法
+# 一致性Hash算法
 
 1.为什么要使用一致性Hash
 
@@ -118,7 +118,7 @@ O(1) < O(log2N) < O(n) < O(N * log2N) < O(N2) < O(N3) < 2N < 3N < N!
 * @author 哓哓
 *
 */
- 
+
 public class StringHashCodeTest
 {
    public static void main(String[] args)
@@ -208,7 +208,7 @@ public class ConsistentHashWithoutVN {
 			hash = Math.abs(hash);
 		return hash;
 	}
-	
+
 	private static String matchServer(String node) {
 		// 待路由结点的Hash值
 		int hash = getHash(node);
@@ -219,16 +219,16 @@ public class ConsistentHashWithoutVN {
 		// 返回路由到的服务器名称
 		return subMap.get(i);
 	}
-	
+
 	public static void main(String[] args) {
-		 
+
 		String[] nodes = {"127.0.0.1:1111", "221.226.0.1:2222", "10.211.0.1:3333"};
 		for (int i = 0; i < nodes.length; i++) {
-			System.out.println("[" + nodes[i] + "]的hash值为" + getHash(nodes[i]) + ",被路由到的服务器为[" 
+			System.out.println("[" + nodes[i] + "]的hash值为" + getHash(nodes[i]) + ",被路由到的服务器为["
 		+ matchServer(nodes[i]) + "");
 		}
 	}
-	
+
 }
 ```
 
@@ -276,7 +276,7 @@ public class ConsistentHashWithoutVN {
 ```java
 /**
  * 带虚拟结点的一致性Hash算法
- * 
+ *
  * @author 哓哓
  *
  */
@@ -323,7 +323,7 @@ public class ConsistentHashWithVN {
 
 	/**
 	 * 使用FNV1_32_HASH算法计算hash值
-	 * 
+	 *
 	 * @param str
 	 * @return
 	 */
@@ -354,7 +354,7 @@ public class ConsistentHashWithVN {
 		Integer i = subMap.firstKey();
 		// 截取
 		String virtualNode = subMap.get(i);
-		
+
 		// 返回路由到的服务器名称
 		return virtualNode.substring(0, virtualNode.indexOf("&"));
 	}
@@ -399,7 +399,7 @@ public class ConsistentHashWithVN {
 虚拟节点[192.168.0.4:111&&VN2]被添加, hash值为1331645117
 虚拟节点[192.168.0.4:111&&VN3]被添加, hash值为918790803
 虚拟节点[192.168.0.4:111&&VN4]被添加, hash值为1232193678
- 
+
 [127.0.0.1:1111]的hash值为380278925, 被路由到结点[192.168.0.0:111]
 [221.226.0.1:2222]的hash值为1493545632, 被路由到结点[192.168.0.0:111]
 [10.211.0.1:3333]的hash值为1393836017, 被路由到结点[192.168.0.2:111]
