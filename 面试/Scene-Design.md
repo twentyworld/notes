@@ -1,67 +1,6 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
-
-- [场景题：设计判断论文抄袭的系统](#%E5%9C%BA%E6%99%AF%E9%A2%98%E8%AE%BE%E8%AE%A1%E5%88%A4%E6%96%AD%E8%AE%BA%E6%96%87%E6%8A%84%E8%A2%AD%E7%9A%84%E7%B3%BB%E7%BB%9F)
-- [设计一个即时聊天的系统](#%E8%AE%BE%E8%AE%A1%E4%B8%80%E4%B8%AA%E5%8D%B3%E6%97%B6%E8%81%8A%E5%A4%A9%E7%9A%84%E7%B3%BB%E7%BB%9F)
-- [分布式系统事务一致性解决方案](#%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F%E4%BA%8B%E5%8A%A1%E4%B8%80%E8%87%B4%E6%80%A7%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88)
-- [设计高并发的系统？](#%E8%AE%BE%E8%AE%A1%E9%AB%98%E5%B9%B6%E5%8F%91%E7%9A%84%E7%B3%BB%E7%BB%9F)
-- [负载均衡的几种类型](#%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1%E7%9A%84%E5%87%A0%E7%A7%8D%E7%B1%BB%E5%9E%8B)
-- [设计高负载的系统](#%E8%AE%BE%E8%AE%A1%E9%AB%98%E8%B4%9F%E8%BD%BD%E7%9A%84%E7%B3%BB%E7%BB%9F)
-- [订票系统，某车次只有一张火车票，假定有 1w 个人同时打开 12306 网站来订票，如何解决并发问题？（可扩展到任何高并发网站要考虑的 并发读写问题](#%E8%AE%A2%E7%A5%A8%E7%B3%BB%E7%BB%9F%E6%9F%90%E8%BD%A6%E6%AC%A1%E5%8F%AA%E6%9C%89%E4%B8%80%E5%BC%A0%E7%81%AB%E8%BD%A6%E7%A5%A8%E5%81%87%E5%AE%9A%E6%9C%89-1w-%E4%B8%AA%E4%BA%BA%E5%90%8C%E6%97%B6%E6%89%93%E5%BC%80-12306-%E7%BD%91%E7%AB%99%E6%9D%A5%E8%AE%A2%E7%A5%A8%E5%A6%82%E4%BD%95%E8%A7%A3%E5%86%B3%E5%B9%B6%E5%8F%91%E9%97%AE%E9%A2%98%E5%8F%AF%E6%89%A9%E5%B1%95%E5%88%B0%E4%BB%BB%E4%BD%95%E9%AB%98%E5%B9%B6%E5%8F%91%E7%BD%91%E7%AB%99%E8%A6%81%E8%80%83%E8%99%91%E7%9A%84-%E5%B9%B6%E5%8F%91%E8%AF%BB%E5%86%99%E9%97%AE%E9%A2%98)
-- [分布式与集群的区别是什么](#%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8E%E9%9B%86%E7%BE%A4%E7%9A%84%E5%8C%BA%E5%88%AB%E6%98%AF%E4%BB%80%E4%B9%88)
-- [实时展现热门文章，比如近8小时点击量最大的文章前100名](#%E5%AE%9E%E6%97%B6%E5%B1%95%E7%8E%B0%E7%83%AD%E9%97%A8%E6%96%87%E7%AB%A0%E6%AF%94%E5%A6%82%E8%BF%918%E5%B0%8F%E6%97%B6%E7%82%B9%E5%87%BB%E9%87%8F%E6%9C%80%E5%A4%A7%E7%9A%84%E6%96%87%E7%AB%A0%E5%89%8D100%E5%90%8D)
-- [如何解决电商网站超卖现象](#%E5%A6%82%E4%BD%95%E8%A7%A3%E5%86%B3%E7%94%B5%E5%95%86%E7%BD%91%E7%AB%99%E8%B6%85%E5%8D%96%E7%8E%B0%E8%B1%A1)
-- [有关微服务拆分思想？如何进行微服务的拆分？](#%E6%9C%89%E5%85%B3%E5%BE%AE%E6%9C%8D%E5%8A%A1%E6%8B%86%E5%88%86%E6%80%9D%E6%83%B3%E5%A6%82%E4%BD%95%E8%BF%9B%E8%A1%8C%E5%BE%AE%E6%9C%8D%E5%8A%A1%E7%9A%84%E6%8B%86%E5%88%86)
-- [如何保证接口的幂等性？](#%E5%A6%82%E4%BD%95%E4%BF%9D%E8%AF%81%E6%8E%A5%E5%8F%A3%E7%9A%84%E5%B9%82%E7%AD%89%E6%80%A7)
-  - [全局唯一ID](#%E5%85%A8%E5%B1%80%E5%94%AF%E4%B8%80id)
-  - [去重表](#%E5%8E%BB%E9%87%8D%E8%A1%A8)
-  - [插入或更新](#%E6%8F%92%E5%85%A5%E6%88%96%E6%9B%B4%E6%96%B0)
-  - [多版本控制](#%E5%A4%9A%E7%89%88%E6%9C%AC%E6%8E%A7%E5%88%B6)
-  - [状态机控制](#%E7%8A%B6%E6%80%81%E6%9C%BA%E6%8E%A7%E5%88%B6)
-- [mq异步调用失败，如何保证数据一致性？](#mq%E5%BC%82%E6%AD%A5%E8%B0%83%E7%94%A8%E5%A4%B1%E8%B4%A5%E5%A6%82%E4%BD%95%E4%BF%9D%E8%AF%81%E6%95%B0%E6%8D%AE%E4%B8%80%E8%87%B4%E6%80%A7)
-- [分布式锁的几种实现方式](#%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81%E7%9A%84%E5%87%A0%E7%A7%8D%E5%AE%9E%E7%8E%B0%E6%96%B9%E5%BC%8F)
-  - [乐观锁冲突并发量很大怎么办](#%E4%B9%90%E8%A7%82%E9%94%81%E5%86%B2%E7%AA%81%E5%B9%B6%E5%8F%91%E9%87%8F%E5%BE%88%E5%A4%A7%E6%80%8E%E4%B9%88%E5%8A%9E)
-- [消息队列](#%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97)
-  - [四种MQ区别](#%E5%9B%9B%E7%A7%8Dmq%E5%8C%BA%E5%88%AB)
-  - [如何保证消息队列是高可用的](#%E5%A6%82%E4%BD%95%E4%BF%9D%E8%AF%81%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97%E6%98%AF%E9%AB%98%E5%8F%AF%E7%94%A8%E7%9A%84)
-  - [如何保证消息不被重复消费](#%E5%A6%82%E4%BD%95%E4%BF%9D%E8%AF%81%E6%B6%88%E6%81%AF%E4%B8%8D%E8%A2%AB%E9%87%8D%E5%A4%8D%E6%B6%88%E8%B4%B9)
-- [如何防止Cookie被篡改](#%E5%A6%82%E4%BD%95%E9%98%B2%E6%AD%A2cookie%E8%A2%AB%E7%AF%A1%E6%94%B9)
-- [分布式 ID 生成器](#%E5%88%86%E5%B8%83%E5%BC%8F-id-%E7%94%9F%E6%88%90%E5%99%A8)
-- [Redis和RabbitMQ用作消息队列的区别](#redis%E5%92%8Crabbitmq%E7%94%A8%E4%BD%9C%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97%E7%9A%84%E5%8C%BA%E5%88%AB)
-  - [总结](#%E6%80%BB%E7%BB%93)
-- [CAP原则](#cap%E5%8E%9F%E5%88%99)
-- [BASE理论](#base%E7%90%86%E8%AE%BA)
-  - [1、基本可用](#1%E5%9F%BA%E6%9C%AC%E5%8F%AF%E7%94%A8)
-  - [2、软状态](#2%E8%BD%AF%E7%8A%B6%E6%80%81)
-  - [3、最终一致性](#3%E6%9C%80%E7%BB%88%E4%B8%80%E8%87%B4%E6%80%A7)
-- [ACID和BASE的区别](#acid%E5%92%8Cbase%E7%9A%84%E5%8C%BA%E5%88%AB)
-- [一致性协议，从2PC到3PC到Paxos到ZAB](#%E4%B8%80%E8%87%B4%E6%80%A7%E5%8D%8F%E8%AE%AE%E4%BB%8E2pc%E5%88%B03pc%E5%88%B0paxos%E5%88%B0zab)
-- [2PC（Two-Phase Commit，两阶段提交）](#2pctwo-phase-commit%E4%B8%A4%E9%98%B6%E6%AE%B5%E6%8F%90%E4%BA%A4)
-  - [1、阶段一：提交事务请求](#1%E9%98%B6%E6%AE%B5%E4%B8%80%E6%8F%90%E4%BA%A4%E4%BA%8B%E5%8A%A1%E8%AF%B7%E6%B1%82)
-  - [2、阶段二：执行事务提交](#2%E9%98%B6%E6%AE%B5%E4%BA%8C%E6%89%A7%E8%A1%8C%E4%BA%8B%E5%8A%A1%E6%8F%90%E4%BA%A4)
-  - [优缺点](#%E4%BC%98%E7%BC%BA%E7%82%B9)
-- [3PC（Three-Phase Commit，三阶段提交）](#3pcthree-phase-commit%E4%B8%89%E9%98%B6%E6%AE%B5%E6%8F%90%E4%BA%A4)
-  - [1、阶段一CanCommit](#1%E9%98%B6%E6%AE%B5%E4%B8%80cancommit)
-  - [2、阶段二PreCommit](#2%E9%98%B6%E6%AE%B5%E4%BA%8Cprecommit)
-    - [（1）执行事务预提交](#1%E6%89%A7%E8%A1%8C%E4%BA%8B%E5%8A%A1%E9%A2%84%E6%8F%90%E4%BA%A4)
-    - [（2）中断事务](#2%E4%B8%AD%E6%96%AD%E4%BA%8B%E5%8A%A1)
-  - [3、阶段三doCommit](#3%E9%98%B6%E6%AE%B5%E4%B8%89docommit)
-    - [（1）执行提交](#1%E6%89%A7%E8%A1%8C%E6%8F%90%E4%BA%A4)
-    - [（2）中断事务](#2%E4%B8%AD%E6%96%AD%E4%BA%8B%E5%8A%A1-1)
-  - [阶段三可能出现的问题：](#%E9%98%B6%E6%AE%B5%E4%B8%89%E5%8F%AF%E8%83%BD%E5%87%BA%E7%8E%B0%E7%9A%84%E9%97%AE%E9%A2%98)
-  - [优缺点](#%E4%BC%98%E7%BC%BA%E7%82%B9-1)
-- [Paxos算法](#paxos%E7%AE%97%E6%B3%95)
-- [ZAB协议](#zab%E5%8D%8F%E8%AE%AE)
-- [ZAD和Paxos算法的联系和区别](#zad%E5%92%8Cpaxos%E7%AE%97%E6%B3%95%E7%9A%84%E8%81%94%E7%B3%BB%E5%92%8C%E5%8C%BA%E5%88%AB)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
-
-
 ## 场景题：设计判断论文抄袭的系统
 1. 一类是基于字符串比较的方法；另一类是基于词频统计的方法。
-2. 基于字符串比较的方法也称为数字指纹法，这类方法通过某种选取策略在文档中取一些字符串作为“指纹”，把指纹映射到Hash 表中，最后统计Hash 
+2. 基于字符串比较的方法也称为数字指纹法，这类方法通过某种选取策略在文档中取一些字符串作为“指纹”，把指纹映射到Hash 表中，最后统计Hash
 3. 表中相同的指纹数目或者比率，作为文本相似度依据。
 4. 基于词频统计的方法也称为基于语义的方法。词频统计法源于信息检索技术中的**向量空间模型**，该类方法首先都要统计每篇文档中各个单词的出现次数，然后根据单词频度构成文档特征向量，最后采用点积、余弦或者类似方式度量两篇文档的特征向量，以此作为文档相似度的依据。
 
@@ -256,8 +195,8 @@ RocketMQ第一阶段发送Prepared消息时，会拿到消息的地址，第二�
 ### 插入或更新
 这种方法插入并且有唯一索引的情况，比如我们要关联商品品类，其中商品的ID和品类的ID可以构成唯一索引，并且在数据表中也增加了唯一索引。这时就可以使用InsertOrUpdate操作。在mysql数据库中如下：
 ```java
-insert into goods_category (goods_id,category_id,create_time,update_time) 
-       values(#{goodsId},#{categoryId},now(),now()) 
+insert into goods_category (goods_id,category_id,create_time,update_time)
+       values(#{goodsId},#{categoryId},now(),now())
        on DUPLICATE KEY UPDATE
        update_time=now()
 ```
