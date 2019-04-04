@@ -541,57 +541,19 @@ public int getLong() {
 而不是什么`ThreadLocal`不允许先`get`后`set`的操作， 请注意。
 
 
-```Java
-
-```
-
-```Java
-
-```
-
-```Java
-
-```
-
-```Java
-
-```
-
-```Java
-
-```
-
-```Java
-
-```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 [1]:https://www.jianshu.com/p/30ee77732843
 [2]:https://upload-images.jianshu.io/upload_images/2615789-12aef2e6ff040cae.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/714/format/webp
 [3]:https://upload-images.jianshu.io/upload_images/2615789-32b422909f2f933c.gif?imageMogr2/auto-orient/strip%7CimageView2/2/w/696/format/webp
 [4]:https://upload-images.jianshu.io/upload_images/2615789-0d85565e94c4bd6b.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/722/format/webp
 
+[7]:https://upload-images.jianshu.io/upload_images/2615789-176285739b74da18.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/543/format/webp
+[8]:https://www.jianshu.com/p/dde92ec37bd1
+[9]: https://upload-images.jianshu.io/upload_images/2615789-217512cee7e45fc7.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/737/format/webp
+[10]: https://upload-images.jianshu.io/upload_images/2615789-ebc60645134a0342.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/744/format/webp
 
+[11]: https://upload-images.jianshu.io/upload_images/2615789-423c8c8dfb2e9557.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/746/format/webp
+
+[12]: https://upload-images.jianshu.io/upload_images/2615789-018d077773a019dc.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/871/format/webp
+
+[13]: https://upload-images.jianshu.io/upload_images/2615789-eee96f3eca481ae0.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/816/format/webp
 /
