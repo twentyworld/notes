@@ -239,30 +239,233 @@ Entry是一个以ThreadLocal为key,Object为value的键值对，另外需要注�
 
 ## ThreadLocal的坑
 
-### 关于内存泄漏
-实际上，为了解决threadLocal潜在的内存泄漏的问题已经做了一些改进。在threadLocal的set和get方法中都有相应的处理。
+## 1. 内存泄露
 
-在`ThreadLocalMap.set()`方法中已经做了一些处理:
+涉及三个方法;
+
+
+#### `expungeStaleEntry(int staleSlot)`
 ```Java
-if (k == null) {
-    replaceStaleEntry(key, value, i);
-    return;
+private int expungeStaleEntry(int staleSlot) {
+    Entry[] tab = table;
+    int len = tab.length;
+
+    //清除当前脏entry
+    // expunge entry at staleSlot
+    tab[staleSlot].value = null;
+    tab[staleSlot] = null;
+    size--;
+
+    // Rehash until we encounter null
+    Entry e;
+    int i;
+        //2.往后环形继续查找,直到遇到table[i]==null时结束
+    for (i = nextIndex(staleSlot, len);
+         (e = tab[i]) != null;
+         i = nextIndex(i, len)) {
+        ThreadLocal<?> k = e.get();
+      //3. 如果在向后搜索过程中再次遇到脏entry，同样将其清理掉
+        if (k == null) {
+            e.value = null;
+            tab[i] = null;
+            size--;
+        } else {
+          //处理rehash的情况
+            int h = k.threadLocalHashCode & (len - 1);
+            if (h != i) {
+                tab[i] = null;
+
+                // Unlike Knuth 6.4 Algorithm R, we must scan until
+                // null because multiple entries could have been stale.
+                while (tab[h] != null)
+                    h = nextIndex(h, len);
+                tab[h] = e;
+            }
+        }
+    }
+    return i;
 }
 
-...
-
-if (!cleanSomeSlots(i, sz) && sz >= threshold)
-    rehash();
 ```
-- 如果当前table[i]!=null的话说明hash冲突就需要向后环形查找，若在查找过程中遇到脏entry就通过replaceStaleEntry进行处理
-- 如果当前table[i]==null的话说明新的entry可以直接插入，但是插入后会调用cleanSomeSlots方法检测并清除脏entry
+清理掉当前脏entry后，并没有闲下来继续向后搜索，若再次遇到脏entry继续将其清理，直到哈希桶（table[i]）为null时退出。因此方法执行完的结果为 从当前脏entry（staleSlot）位到返回的i位，这中间所有的entry不是脏entry。为什么是遇到null退出呢？原因是存在脏entry的前提条件是 当前哈希桶（table[i]）不为null,只是该entry的key域为null。如果遇到哈希桶为null,很显然它连成为脏entry的前提条件都不具备。
+
+#### `cleanSomeSlots(int i, int n)`
+
+```java
+private boolean cleanSomeSlots(int i, int n) {
+    boolean removed = false;
+    Entry[] tab = table;
+    int len = tab.length;
+    do {
+        i = nextIndex(i, len);
+        Entry e = tab[i];
+        if (e != null && e.get() == null) {
+            n = len;
+            removed = true;
+            i = expungeStaleEntry(i);
+        }
+    } while ( (n >>>= 1) != 0);
+    return removed;
+}
+
+```
+这个源码很简单， 就是向后循环查询，主要用于扫描控制（scan control），从while中是通过n来进行条件判断的说明n就是用来控制扫描趟数（循环次数）的。在扫描过程中，如果没有遇到脏entry就整个扫描过程持续log2(n)次，log2(n)的得来是因为n >>>= 1，每次n右移一位相当于n除以2。如果在扫描过程中遇到脏entry的话就会令n为当前hash表的长度（n=len），再扫描log2(n)趟，注意此时n增加无非就是多增加了循环次数从而通过nextIndex往后搜索的范围扩大，示意图如下
+
+![cleanSomeSlots示意图][7]
+
+现在对cleanSomeSlot方法做一下总结:
+
+- 从当前位置i处（位于i处的entry一定不是脏entry）为起点在初始小范围（log2(n)，n为哈希表已插入entry的个数size）开始向后搜索脏entry，若在整个搜索过程没有脏entry，方法结束退出
+- 如果在搜索过程中遇到脏entryt通过expungeStaleEntry方法清理掉当前脏entry，并且该方法会返回下一个哈希桶(table[i])为null的索引位置为i。这时重新令搜索起点为索引位置i，n为哈希表的长度len，再次扩大搜索范围为log2(n')继续搜索。
+
+
+
+下面，以一个例子更清晰的来说一下，假设当前table数组的情况如下图。
+
+> 这一段例子引用自这里[这里][8]
+
+![][9]
+
+- 如图当前n等于hash表的size即n=10，i=1,在第一趟搜索过程中通过nextIndex,i指向了索引为2的位置，此时table[2]为null，说明第一趟未发现脏entry,则第一趟结束进行第二趟的搜索。
+
+- 第二趟所搜先通过nextIndex方法，索引由2的位置变成了i=3,当前table[3]!=null但是该entry的key为null，说明找到了一个脏entry，先将n置为哈希表的长度len,然后继续调用expungeStaleEntry方法，该方法会将当前索引为3的脏entry给清除掉（令value为null，并且table[3]也为null）,但是该方法可不想偷懒，它会继续往后环形搜索，往后会发现索引为4,5的位置的entry同样为脏entry，索引为6的位置的entry不是脏entry保持不变，直至i=7的时候此处table[7]位null，该方法就以i=7返回。至此，第二趟搜索结束；
+
+- 由于在第二趟搜索中发现脏entry，n增大为数组的长度len，因此扩大搜索范围（增大循环次数）继续向后环形搜索；
+
+- 直到在整个搜索范围里都未发现脏entry，cleanSomeSlot方法执行结束退出。
+
+
+#### `replaceStaleEntry`
+
+```java
+private void replaceStaleEntry(ThreadLocal<?> key, Object value,
+                               int staleSlot) {
+    Entry[] tab = table;
+    int len = tab.length;
+    Entry e;
+
+    // Back up to check for prior stale entry in current run.
+    // We clean out whole runs at a time to avoid continual
+    // incremental rehashing due to garbage collector freeing
+    // up refs in bunches (i.e., whenever the collector runs).
+    int slotToExpunge = staleSlot;
+    for (int i = prevIndex(staleSlot, len);
+         (e = tab[i]) != null;
+         i = prevIndex(i, len))
+        if (e.get() == null)
+            slotToExpunge = i;
+
+    // Find either the key or trailing null slot of run, whichever
+    // occurs first
+    for (int i = nextIndex(staleSlot, len);
+         (e = tab[i]) != null;
+         i = nextIndex(i, len)) {
+        ThreadLocal<?> k = e.get();
+
+        // If we find key, then we need to swap it
+        // with the stale entry to maintain hash table order.
+        // The newly stale slot, or any other stale slot
+        // encountered above it, can then be sent to expungeStaleEntry
+        // to remove or rehash all of the other entries in run.
+        if (k == key) {
+          //如果在向后环形查找过程中发现key相同的entry就覆盖并且和脏entry进行交换
+            e.value = value;
+
+            tab[i] = tab[staleSlot];
+            tab[staleSlot] = e;
+
+            // Start expunge at preceding stale entry if it exists
+            //如果在前面的向前查找过程中还未发现脏entry，那么就以当前位置作为cleanSomeSlots
+            //的起点
+            if (slotToExpunge == staleSlot)
+                slotToExpunge = i;
+            cleanSomeSlots(expungeStaleEntry(slotToExpunge), len);
+            return;
+        }
+
+        // If we didn't find stale entry on backward scan, the
+        // first stale entry seen while scanning for key is the
+        // first still present in the run.
+        //与上面相同， 如果slotToExpunge  不同，就可以认定， 前面改过， 肯定比当前的要早
+        //就不要替换， 如果相同，就说明前面没有改过，就替换掉.
+        if (k == null && slotToExpunge == staleSlot)
+            slotToExpunge = i;
+    }
+
+    // If key not found, put new entry in stale slot
+    tab[staleSlot].value = null;
+    tab[staleSlot] = new Entry(key, value);
+
+    // If there are any other stale entries in run, expunge them
+    if (slotToExpunge != staleSlot)
+        cleanSomeSlots(expungeStaleEntry(slotToExpunge), len);
+}
+```
+
+我们细致的梳理一下，这个函数做了什么:
+
+0. 我们可以认定入参 staleSlot所指向的entry是一个脏entry, 这是必然的.
+
+1. 首先，向前查询，查验,在当前脏entry之前，是不是还存在脏entry, 当然， 不会无限查询，只会查询不是null的.
+   如果存在多个，就返回slot最小的那个.
+   记录下来这个值
+
+2. 向后查询， 还是以null结束.
+
+3. 如果在循环查询的过程中, 发现了要插入的key已经存在
+   - 和staleslot对调，并且调整当前值. 然后删掉那个脏entry
+   - 然后执行`cleanSomeSlots(expungeStaleEntry(slotToExpunge), len)` 返回
+
+4. 如果向后查询的过程中，key不存在
+   - 把要插入的key-value， 插入staleSlot所在的entry.
+   - 然后再次执行`cleanSomeSlots(expungeStaleEntry(slotToExpunge), len)`
+
+其实也可以使用一些图标来形象地展示:
+
+分为四种情况:
+
+**前向有脏entry 后向环形查找找到可覆盖的entry**
+
+![向前环形搜索到脏entry，向后环形查找到可覆盖的entry的情况][10]
+
+这里，slotToExpunge的指向就是前面的脏entry.
 
 
 
 
+**前向有脏entry 后向环形查找未找到可覆盖的entry**
+
+![向前环形搜索到脏entry，后向环形查找未找到可覆盖的entry][11]
+
+这里，slotToExpunge的指向就是前面的脏entry.
 
 
-### 关于到底能不能set之前get
+**前向没有脏entry 后向环形查找找到可覆盖的entry**
+
+![前向没有脏entry，后向环形查找找到可覆盖的entry][12]
+
+这里，slotToExpunge的指向的就是向后循环所查找到的第一个脏entry.
+
+
+**前向没有脏entry 2.2后向环形查找未找到可覆盖的entry**
+
+![前向没有脏entry，后向环形查找未找到可覆盖的entry][13]
+
+这里，slotToExpunge的指向的就是向后循环所查找到的第一个脏entry.
+
+
+### 为什么使用弱引用？
+从文章开头通过threadLocal,threadLocalMap,entry的引用关系看起来threadLocal存在内存泄漏的问题似乎是因为threadLocal是被弱引用修饰的。
+
+假设threadLocal使用的是强引用，在业务代码中执行threadLocalInstance==null操作，以清理掉threadLocal实例的目的，但是因为threadLocalMap的Entry强引用threadLocal，因此在gc的时候进行可达性分析，threadLocal依然可达，对threadLocal并不会进行垃圾回收，这样就无法真正达到业务逻辑的目的，出现逻辑错误
+
+
+假设Entry弱引用threadLocal，尽管会出现内存泄漏的问题，但是在threadLocal的生命周期里（set,getEntry,remove）里，都会针对key为null的脏entry进行处理。
+从以上的分析可以看出，使用弱引用的话在threadLocal生命周期里会尽可能的保证不出现内存泄漏的问题，达到安全的状态。
+
+
+
+## 2. 关于到底能不能set之前get
 有的博客会说`get`之前必须`set`，否则会报空指针异常. **这个理解是错误的**,正如前面的例子，并不会报错，只是会返回一个`null`，读完代码，也可以发现这一点。
 
 我们以这个代码为例，这里是不会报错的。
